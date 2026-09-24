@@ -1,10 +1,14 @@
 from flask import Flask
+from database import init_db
 
 app = Flask(__name__)
 
-@ app.route("/")
+
+@app.route("/")
 def index():
-    return "Personal Execution Assistant"
+    return "EXECUTE is running."
+
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
