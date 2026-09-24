@@ -8,9 +8,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import get_db, init_db
 
-# AI disclosure (CS50 final project requirement): the task management milestone
-# (task routes in app.py and the templates/tasks.html, task.html, dashboard.html
-# and layout.html files) was written with the help of an AI coding assistant.
+# AI disclosure (CS50 final project requirement): this project was written with
+# the help of an AI coding assistant. AI assistance was used for the task
+# management routes below and for the front end in templates/ and
+# static/style.css; every change was reviewed and tested by the author.
 
 load_dotenv()
 

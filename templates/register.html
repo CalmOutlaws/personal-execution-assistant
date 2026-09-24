@@ -1,31 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - EXECUTE</title>
-</head>
-<body>
-    <h1>Create your EXECUTE account</h1>
+{% extends "layout.html" %}
 
-    <form method="POST">
-        <label for="username">Username</label>
-        <input
-            type="text"
-            id="username"
-            name="username"
-            required
-        >
+{% block title %}Register - EXECUTE{% endblock %}
 
-        <label for="password">Password</label>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            required
-        >
+{% block body_class %}auth{% endblock %}
 
-        <button type="submit">Create Account</button>
-    </form>
-</body>
-</html>
+{% block content %}
+    <div class="card auth-card">
+        <header class="auth-card__header">
+            <p class="eyebrow">Get started</p>
+            <h1>Create your account</h1>
+            <p class="page-subtitle">
+                Turn intentions into actions, one task at a time.
+            </p>
+        </header>
+
+        <form class="form" method="POST">
+            <div class="field">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    autocomplete="new-password"
+                    required
+                >
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn--primary btn--block" type="submit">
+                    Create account
+                </button>
+            </div>
+        </form>
+
+        <p class="auth-card__footer">
+            Already have an account?
+            <a href="{{ url_for('login') }}">Log in</a>
+        </p>
+    </div>
+{% endblock %}

@@ -3,11 +3,50 @@
 {% block title %}Dashboard - EXECUTE{% endblock %}
 
 {% block content %}
-    <h1>Dashboard</h1>
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Dashboard</p>
+            <h1>Welcome back, {{ session["username"] }}</h1>
+            <p class="page-subtitle">Turn intentions into actions.</p>
+        </div>
+    </header>
 
-    <p>Logged in as {{ session["username"] }}.</p>
+    <section class="section" aria-labelledby="how-heading">
+        <div class="card">
+            <h2 id="how-heading">How EXECUTE works</h2>
+            <p class="muted">
+                EXECUTE is a personal execution assistant. You write down what you
+                intend to do, give it a due date and a priority, and then work
+                through the list one action at a time.
+            </p>
+            <p class="muted">
+                Goals, commitments and progress analytics will be added in later
+                milestones and will appear on this dashboard.
+            </p>
+        </div>
+    </section>
 
-    <p>
-        <a href="{{ url_for('tasks') }}">View your tasks</a>
-    </p>
+    <section class="section" aria-labelledby="shortcuts-heading">
+        <div class="section__header">
+            <h2 id="shortcuts-heading">Shortcuts</h2>
+        </div>
+
+        <div class="action-grid">
+            <a class="action-card" href="{{ url_for('new_task') }}">
+                <span class="action-card__label">Create task</span>
+                <span class="action-card__text">
+                    Capture a new action with an optional due date and a priority.
+                </span>
+                <span class="action-card__cta">+ New task</span>
+            </a>
+
+            <a class="action-card" href="{{ url_for('tasks') }}">
+                <span class="action-card__label">View tasks</span>
+                <span class="action-card__text">
+                    Review everything pending and close out what you have finished.
+                </span>
+                <span class="action-card__cta">Open tasks</span>
+            </a>
+        </div>
+    </section>
 {% endblock %}

@@ -4,24 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EXECUTE{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <!-- AI disclosure: this layout and the task pages were created with AI assistance. -->
-    <nav>
-        <a href="{{ url_for('index') }}">Dashboard</a>
+<body class="app {% block body_class %}{% endblock %}">
+    <!-- AI disclosure: this layout and the page templates were created with AI assistance. -->
+    <a class="skip-link" href="#main-content">Skip to content</a>
 
-        {% if session.get("user_id") %}
-            <a href="{{ url_for('tasks') }}">Tasks</a>
-            <a href="{{ url_for('new_task') }}">Create Task</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
-        {% else %}
-            <a href="{{ url_for('login') }}">Login</a>
-            <a href="{{ url_for('register') }}">Register</a>
-        {% endif %}
-    </nav>
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a class="brand" href="{{ url_for('index') }}">
+                <span class="brand__wordmark">EXECUTE</span>
+                <span class="brand__tagline">Turn intentions into actions.</span>
+            </a>
 
-    <main>
+            <nav class="site-nav" aria-label="Main navigation">
+                {% if session.get("user_id") %}
+                    <a
+                        class="nav-link"
+                        href="{{ url_for('index') }}"
+                        {% if request.endpoint == "index" %}aria-current="page"{% endif %}
+                    >Dashboard</a>
+
+                    <a
+                        class="nav-link"
+                        href="{{ url_for('tasks') }}"
+                        {% if request.endpoint == "tasks" %}aria-current="page"{% endif %}
+                    >Tasks</a>
+
+                    <a
+                        class="nav-link nav-link--accent"
+                        href="{{ url_for('new_task') }}"
+                        {% if request.endpoint == "new_task" %}aria-current="page"{% endif %}
+                    >Create Task</a>
+
+                    <span class="nav-user">{{ session["username"] }}</span>
+
+                    <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                    <a
+                        class="nav-link"
+                        href="{{ url_for('login') }}"
+                        {% if request.endpoint == "login" %}aria-current="page"{% endif %}
+                    >Login</a>
+
+                    <a
+                        class="nav-link nav-link--accent"
+                        href="{{ url_for('register') }}"
+                        {% if request.endpoint == "register" %}aria-current="page"{% endif %}
+                    >Register</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" id="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alerts">
+                    {% for category, message in messages %}
+                        <p class="alert alert--{{ category }}" role="status">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__inner">
+            <p>EXECUTE &middot; CS50x final project</p>
+        </div>
+    </footer>
 </body>
 </html>
+

@@ -1,36 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - EXECUTE</title>
-</head>
-<body>
-    <h1>Login to EXECUTE</h1>
+{% extends "layout.html" %}
 
-    <form method="POST">
-        <label for="username">Username</label>
-        <input
-            type="text"
-            id="username"
-            name="username"
-            required
-        >
+{% block title %}Login - EXECUTE{% endblock %}
 
-        <label for="password">Password</label>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            required
-        >
+{% block body_class %}auth{% endblock %}
 
-        <button type="submit">Login</button>
-    </form>
+{% block content %}
+    <div class="card auth-card">
+        <header class="auth-card__header">
+            <p class="eyebrow">Welcome back</p>
+            <h1>Log in</h1>
+            <p class="page-subtitle">Pick up where you left off.</p>
+        </header>
 
-    <p>
-        Don't have an account?
-        <a href="/register">Create one</a>
-    </p>
-</body>
-</html>
+        <form class="form" method="POST">
+            <div class="field">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    autocomplete="current-password"
+                    required
+                >
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn--primary btn--block" type="submit">Log in</button>
+            </div>
+        </form>
+
+        <p class="auth-card__footer">
+            Don't have an account?
+            <a href="{{ url_for('register') }}">Create one</a>
+        </p>
+    </div>
+{% endblock %}

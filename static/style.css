@@ -1,0 +1,737 @@
+/* ==========================================================================
+   EXECUTE - application stylesheet
+   Plain CSS only, no frameworks. AI disclosure: this stylesheet and the
+   templates that use it were written with AI assistance for the CS50x
+   final project, and were reviewed and tested by the author.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Base and design tokens
+   ========================================================================== */
+
+:root {
+    /* Keeps native controls (date picker, scrollbars) dark as well */
+    color-scheme: dark;
+
+    /* Surfaces */
+    --bg: #0b0e13;
+    --surface: #141922;
+    --surface-hover: #1a2129;
+    --border: #262e3a;
+
+    /* Text */
+    --text: #e9edf3;
+    --text-muted: #9aa6b6;
+    --text-faint: #74808f;
+
+    /* One accent colour, used for actions and focus only */
+    --accent: #6b9bf7;
+    --accent-hover: #8bb0f9;
+    --accent-contrast: #0a0e14;
+
+    /* Restrained status accents (used only for small dots and thin borders) */
+    --danger: #e07a6f;
+    --warning: #dcae6a;
+    --success: #5fbb98;
+
+    /* Consistent corner radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+}
+
+/* Visible keyboard focus for every interactive element */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Keyboard users can jump straight to the page content */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 20;
+    padding: 10px 16px;
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+    border-radius: 0 0 var(--radius-sm) 0;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+
+/* ==========================================================================
+   2. Layout
+   ========================================================================== */
+
+.app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.site-header__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 24px;
+}
+
+.container {
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 36px 24px 64px;
+}
+
+.site-footer {
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 0.82rem;
+}
+
+.site-footer__inner {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 18px 24px;
+}
+
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+    padding-bottom: 20px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-header__text {
+    display: grid;
+    gap: 6px;
+}
+
+.section {
+    margin-bottom: 40px;
+}
+
+.section__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   3. Navigation
+   ========================================================================== */
+
+.brand {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    text-decoration: none;
+    color: var(--text);
+}
+
+.brand__wordmark {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.brand__tagline {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.nav-link {
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    color: var(--text);
+    background-color: var(--surface);
+    text-decoration: none;
+}
+
+.nav-link[aria-current="page"] {
+    color: var(--text);
+    border-color: var(--border);
+    background-color: var(--surface);
+}
+
+.nav-link--accent {
+    color: var(--accent);
+}
+
+.nav-user {
+    padding: 0 8px;
+    color: var(--text-faint);
+    font-size: 0.82rem;
+}
+
+/* ==========================================================================
+   4. Typography
+   ========================================================================== */
+
+h1,
+h2,
+h3 {
+    margin: 0;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+}
+
+h1 {
+    font-size: 1.7rem;
+}
+
+h2 {
+    font-size: 1.1rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.eyebrow {
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 60ch;
+}
+
+.muted {
+    color: var(--text-muted);
+}
+
+.count {
+    padding: 2px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   5. Buttons
+   ========================================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn--primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.btn--primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn--ghost {
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.btn--ghost:hover {
+    background-color: var(--surface-hover);
+    border-color: var(--text-faint);
+}
+
+.btn--danger {
+    border-color: rgba(224, 122, 111, 0.45);
+    color: var(--danger);
+}
+
+.btn--danger:hover {
+    background-color: rgba(224, 122, 111, 0.12);
+    border-color: var(--danger);
+}
+
+.btn--small {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+}
+
+.btn--block {
+    width: 100%;
+}
+
+/* ==========================================================================
+   6. Forms
+   ========================================================================== */
+
+.form {
+    display: grid;
+    gap: 22px;
+    width: 100%;
+    max-width: 560px;
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+}
+
+.field > label {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.field__hint {
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.form input,
+.form select,
+.form textarea {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.form textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.form input::placeholder,
+.form textarea::placeholder {
+    color: var(--text-faint);
+}
+
+.form input:hover,
+.form select:hover,
+.form textarea:hover {
+    border-color: var(--text-faint);
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+    border-color: var(--accent);
+    outline: 2px solid rgba(107, 155, 247, 0.35);
+    outline-offset: 1px;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ==========================================================================
+   7. Alerts (validation errors and flash messages)
+   ========================================================================== */
+
+.alerts {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.alert {
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.alert--error {
+    border-left-color: var(--danger);
+}
+
+.alert ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.alert li + li {
+    margin-top: 4px;
+}
+
+/* ==========================================================================
+   8. Task cards
+   ========================================================================== */
+
+.task-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.task {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+}
+
+.task__title {
+    font-size: 1.05rem;
+}
+
+.task__description {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    overflow-wrap: anywhere;
+}
+
+.task__title,
+.task__meta,
+.task__actions {
+    overflow-wrap: anywhere;
+}
+
+.task__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 0;
+    padding: 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    list-style: none;
+}
+
+.task__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.task__actions form {
+    margin: 0;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+/* Priority is shown as a label plus a small status dot, never colour alone */
+.badge--priority::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--text-faint);
+}
+
+.badge--high::before {
+    background-color: var(--danger);
+}
+
+.badge--medium::before {
+    background-color: var(--warning);
+}
+
+.badge--low::before {
+    background-color: var(--success);
+}
+
+.badge--completed {
+    color: var(--success);
+    border-color: rgba(95, 187, 152, 0.4);
+}
+
+/* Completed tasks are dimmed and marked, but stay readable */
+.task--completed {
+    border-left-color: rgba(95, 187, 152, 0.5);
+    background-color: transparent;
+}
+
+.task--completed .task__title {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.task--completed .task__description {
+    color: var(--text-faint);
+}
+
+.empty-state {
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-size: 0.92rem;
+}
+
+/* ==========================================================================
+   9. Cards and dashboard
+   ========================================================================== */
+
+.card {
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+}
+
+.card > h2 + p,
+.card > p + p {
+    margin-top: 10px;
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 14px;
+}
+
+.action-card {
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.action-card:hover {
+    border-color: var(--accent);
+    background-color: var(--surface-hover);
+    text-decoration: none;
+}
+
+.action-card__label {
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.action-card__text {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.action-card__cta {
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   10. Authentication pages
+   ========================================================================== */
+
+.auth .container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 56px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+}
+
+.auth-card__header {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.auth-card__footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.auth-card .form {
+    max-width: none;
+}
+
+/* ==========================================================================
+   11. Responsive rules
+   ========================================================================== */
+
+@media (max-width: 760px) {
+    .site-header__inner {
+        padding: 12px 18px;
+    }
+
+    .site-nav {
+        width: 100%;
+    }
+
+    .container {
+        padding: 26px 18px 48px;
+    }
+
+    .auth .container {
+        padding-top: 32px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+    }
+
+    h1 {
+        font-size: 1.45rem;
+    }
+
+    .task__actions {
+        width: 100%;
+    }
+
+    .task__actions .btn {
+        flex: 1 1 auto;
+    }
+}
+
+@media (max-width: 420px) {
+    .brand__wordmark {
+        letter-spacing: 0.14em;
+    }
+
+    .page-header .btn {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   12. Motion preferences
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+    }
+}
+
