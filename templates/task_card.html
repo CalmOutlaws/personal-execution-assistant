@@ -1,0 +1,62 @@
+{# One task card. Shared by the task list and the goal detail page so both stay
+   visually identical. Expects "task" and an optional "show_goal" flag.
+   AI disclosure: created with AI assistance, reviewed and tested by the author. #}
+<li class="task{% if task["status"] == "completed" %} task--completed{% endif %}">
+    <div>
+        <h3 class="task__title">{{ task["title"] }}</h3>
+
+        {% if task["description"] %}
+            <p class="task__description">{{ task["description"] }}</p>
+        {% endif %}
+    </div>
+
+    <ul class="task__meta">
+        <li>
+            <span class="badge{% if task["status"] == "completed" %} badge--completed{% endif %}">
+                {{ task["status"]|capitalize }}
+            </span>
+        </li>
+
+        <li>
+            <span class="badge badge--priority badge--{{ task["priority"] }}">
+                {{ task["priority"]|capitalize }} priority
+            </span>
+        </li>
+
+        <li>
+            {% if task["due_at"] %}
+                Due {{ task["due_at"] }}
+            {% else %}
+                No due date
+            {% endif %}
+        </li>
+
+        {% if show_goal and task["goal_title"] %}
+            <li>
+                Goal:
+                <a href="{{ url_for('goal_detail', goal_id=task['goal_id']) }}">{{ task["goal_title"] }}</a>
+            </li>
+        {% endif %}
+
+        {% if task["status"] == "completed" %}
+            <li>Completed {{ task["completed_at"] }}</li>
+        {% endif %}
+    </ul>
+
+    <div class="task__actions">
+        {% if task["status"] != "completed" %}
+            <form
+                method="POST"
+                action="{{ url_for('complete_task', task_id=task['id']) }}"
+            >
+                <button class="btn btn--primary btn--small" type="submit">
+                    Mark complete
+                </button>
+            </form>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('delete_task', task_id=task['id']) }}">
+            <button class="btn btn--danger btn--small" type="submit">Delete</button>
+        </form>
+    </div>
+</li>

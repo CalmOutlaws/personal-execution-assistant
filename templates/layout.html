@@ -32,6 +32,12 @@
                     >Tasks</a>
 
                     <a
+                        class="nav-link"
+                        href="{{ url_for('goals') }}"
+                        {% if request.endpoint in ["goals", "goal_detail", "new_goal", "edit_goal"] %}aria-current="page"{% endif %}
+                    >Goals</a>
+
+                    <a
                         class="nav-link nav-link--accent"
                         href="{{ url_for('new_task') }}"
                         {% if request.endpoint == "new_task" %}aria-current="page"{% endif %}

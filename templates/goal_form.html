@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. It is shared by "create goal" and "edit goal". #}
+
+{% set editing = goal is defined and goal %}
+
+{% if editing %}
+    {% set form_action = url_for('edit_goal', goal_id=goal['id']) %}
+    {% set cancel_url = url_for('goal_detail', goal_id=goal['id']) %}
+    {% set current_title = request.form.get('title', goal['title']) %}
+    {% set current_description = request.form.get('description', goal['description'] or '') %}
+    {% set current_deadline = request.form.get('deadline', (goal['deadline'] or '').replace(' ', 'T')) %}
+{% else %}
+    {% set form_action = url_for('new_goal') %}
+    {% set cancel_url = url_for('goals') %}
+    {% set current_title = request.form.get('title', '') %}
+    {% set current_description = request.form.get('description', '') %}
+    {% set current_deadline = request.form.get('deadline', '') %}
+{% endif %}
+
+{% block title %}{% if editing %}Edit goal{% else %}New Goal{% endif %} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">{% if editing %}Edit goal{% else %}New goal{% endif %}</p>
+            <h1>{% if editing %}Edit goal{% else %}Create a goal{% endif %}</h1>
+            <p class="page-subtitle">
+                {% if editing %}
+                    Update the outcome you are working towards.
+                {% else %}
+                    Name the outcome first, then link the tasks that get you there.
+                {% endif %}
+            </p>
+        </div>
+    </header>
+
+    {% if errors %}
+        <div class="alert alert--error" role="alert">
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form class="form" method="POST" action="{{ form_action }}">
+        <div class="field">
+            <label for="title">Title</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                value="{{ current_title }}"
+                placeholder="e.g. Run a half marathon"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="description">
+                Description <span class="field__hint">optional</span>
+            </label>
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+                placeholder="Why does this goal matter, and what does done look like?"
+            >{{ current_description }}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="deadline">
+                Deadline <span class="field__hint">optional</span>
+            </label>
+            <input
+                type="datetime-local"
+                id="deadline"
+                name="deadline"
+                value="{{ current_deadline }}"
+            >
+            <p class="field__hint">The date and time you want this goal achieved by.</p>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">
+                {% if editing %}Save changes{% else %}Create goal{% endif %}
+            </button>
+            <a class="btn btn--ghost" href="{{ cancel_url }}">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

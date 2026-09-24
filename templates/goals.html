@@ -1,0 +1,168 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. #}
+
+{% block title %}Goals - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Goal management</p>
+            <h1>Goals</h1>
+            <p class="page-subtitle">
+                The outcomes you are working towards, and the tasks that move them
+                forward.
+            </p>
+        </div>
+
+        <a class="btn btn--primary" href="{{ url_for('new_goal') }}">Create goal</a>
+    </header>
+
+    <section class="section" aria-labelledby="active-goals-heading">
+        <div class="section__header">
+            <h2 id="active-goals-heading">Active</h2>
+            <span class="count">{{ active_goals|length }}</span>
+        </div>
+
+        {% if active_goals %}
+            <ul class="goal-list">
+                {% for goal in active_goals %}
+                    <li class="goal">
+                        <div>
+                            <h3 class="goal__title">
+                                <a href="{{ url_for('goal_detail', goal_id=goal['id']) }}">
+                                    {{ goal["title"] }}
+                                </a>
+                            </h3>
+
+                            {% if goal["description"] %}
+                                <p class="goal__description">{{ goal["description"] }}</p>
+                            {% endif %}
+                        </div>
+
+                        <ul class="goal__meta">
+                            <li>
+                                <span class="badge badge--active">
+                                    {{ goal["status"]|capitalize }}
+                                </span>
+                            </li>
+
+                            <li>
+                                {% if goal["deadline"] %}
+                                    Deadline {{ goal["deadline"] }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </li>
+
+                            <li>
+                                {{ goal["task_count"] }}
+                                task{% if goal["task_count"] != 1 %}s{% endif %}
+                                {%- if goal["open_task_count"] %} ({{ goal["open_task_count"] }} open){% endif %}
+                            </li>
+                        </ul>
+
+                        <div class="goal__actions">
+                            <a
+                                class="btn btn--ghost btn--small"
+                                href="{{ url_for('goal_detail', goal_id=goal['id']) }}"
+                            >View goal</a>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('complete_goal', goal_id=goal['id']) }}"
+                            >
+                                <button class="btn btn--primary btn--small" type="submit">
+                                    Mark complete
+                                </button>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('delete_goal', goal_id=goal['id']) }}"
+                            >
+                                <button class="btn btn--danger btn--small" type="submit">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                No active goals yet.
+                <a href="{{ url_for('new_goal') }}">Create your first goal</a>.
+            </p>
+        {% endif %}
+    </section>
+
+    <section class="section" aria-labelledby="completed-goals-heading">
+        <div class="section__header">
+            <h2 id="completed-goals-heading">Completed</h2>
+            <span class="count">{{ completed_goals|length }}</span>
+        </div>
+
+        {% if completed_goals %}
+            <ul class="goal-list">
+                {% for goal in completed_goals %}
+                    <li class="goal goal--completed">
+                        <div>
+                            <h3 class="goal__title">
+                                <a href="{{ url_for('goal_detail', goal_id=goal['id']) }}">
+                                    {{ goal["title"] }}
+                                </a>
+                            </h3>
+
+                            {% if goal["description"] %}
+                                <p class="goal__description">{{ goal["description"] }}</p>
+                            {% endif %}
+                        </div>
+
+                        <ul class="goal__meta">
+                            <li>
+                                <span class="badge badge--completed">
+                                    {{ goal["status"]|capitalize }}
+                                </span>
+                            </li>
+
+                            <li>
+                                {% if goal["deadline"] %}
+                                    Deadline {{ goal["deadline"] }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </li>
+
+                            <li>
+                                {{ goal["task_count"] }}
+                                task{% if goal["task_count"] != 1 %}s{% endif %}
+                            </li>
+                        </ul>
+
+                        <div class="goal__actions">
+                            <a
+                                class="btn btn--ghost btn--small"
+                                href="{{ url_for('goal_detail', goal_id=goal['id']) }}"
+                            >View goal</a>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('delete_goal', goal_id=goal['id']) }}"
+                            >
+                                <button class="btn btn--danger btn--small" type="submit">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                Nothing completed yet. Goals you finish will appear here.
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

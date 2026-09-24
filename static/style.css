@@ -156,6 +156,23 @@ body {
     margin-bottom: 16px;
 }
 
+/* A button in a section header sits opposite the heading */
+.section__header .btn {
+    margin-left: auto;
+}
+
+/* Action buttons shown next to a page title */
+.page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-header__actions form {
+    margin: 0;
+}
+
 /* ==========================================================================
    3. Navigation
    ========================================================================== */
@@ -463,10 +480,11 @@ a:hover {
 }
 
 /* ==========================================================================
-   8. Task cards
+   8. Task and goal cards
    ========================================================================== */
 
-.task-list {
+.task-list,
+.goal-list {
     display: grid;
     gap: 12px;
     margin: 0;
@@ -474,7 +492,8 @@ a:hover {
     list-style: none;
 }
 
-.task {
+.task,
+.goal {
     display: grid;
     gap: 14px;
     padding: 18px 20px;
@@ -484,11 +503,18 @@ a:hover {
     background-color: var(--surface);
 }
 
-.task__title {
+.task__title,
+.goal__title {
     font-size: 1.05rem;
 }
 
-.task__description {
+/* A goal title links to its detail page, so keep it in the text colour */
+.goal__title a {
+    color: var(--text);
+}
+
+.task__description,
+.goal__description {
     margin-top: 6px;
     color: var(--text-muted);
     font-size: 0.92rem;
@@ -497,11 +523,15 @@ a:hover {
 
 .task__title,
 .task__meta,
-.task__actions {
+.task__actions,
+.goal__title,
+.goal__meta,
+.goal__actions {
     overflow-wrap: anywhere;
 }
 
-.task__meta {
+.task__meta,
+.goal__meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -513,13 +543,15 @@ a:hover {
     list-style: none;
 }
 
-.task__actions {
+.task__actions,
+.goal__actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-.task__actions form {
+.task__actions form,
+.goal__actions form {
     margin: 0;
 }
 
@@ -561,19 +593,32 @@ a:hover {
     border-color: rgba(95, 187, 152, 0.4);
 }
 
-/* Completed tasks are dimmed and marked, but stay readable */
-.task--completed {
+/* Active is the default goal status: accent colour, still shown as text */
+.badge--active {
+    color: var(--accent);
+    border-color: rgba(107, 155, 247, 0.4);
+}
+
+/* Completed tasks and goals are dimmed and marked, but stay readable */
+.task--completed,
+.goal--completed {
     border-left-color: rgba(95, 187, 152, 0.5);
     background-color: transparent;
 }
 
-.task--completed .task__title {
+.task--completed .task__title,
+.goal--completed .goal__title {
     color: var(--text-muted);
     font-weight: 600;
 }
 
-.task--completed .task__description {
+.task--completed .task__description,
+.goal--completed .goal__description {
     color: var(--text-faint);
+}
+
+.goal--completed .goal__title a {
+    color: var(--text-muted);
 }
 
 .empty-state {
@@ -639,6 +684,35 @@ a:hover {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+/* Label and value pairs on detail pages, such as a goal's status or deadline */
+.meta-list {
+    display: grid;
+    gap: 12px;
+    margin: 0 0 16px;
+    padding: 0;
+}
+
+.meta-list__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.meta-list dt {
+    min-width: 92px;
+    color: var(--text-faint);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.meta-list dd {
+    margin: 0;
+    font-size: 0.92rem;
 }
 
 /* ==========================================================================

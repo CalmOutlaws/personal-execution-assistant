@@ -24,55 +24,8 @@
         {% if pending_tasks %}
             <ul class="task-list">
                 {% for task in pending_tasks %}
-                    <li class="task">
-                        <div>
-                            <h3 class="task__title">{{ task["title"] }}</h3>
-
-                            {% if task["description"] %}
-                                <p class="task__description">{{ task["description"] }}</p>
-                            {% endif %}
-                        </div>
-
-                        <ul class="task__meta">
-                            <li>
-                                <span class="badge">{{ task["status"]|capitalize }}</span>
-                            </li>
-
-                            <li>
-                                <span class="badge badge--priority badge--{{ task["priority"] }}">
-                                    {{ task["priority"]|capitalize }} priority
-                                </span>
-                            </li>
-
-                            <li>
-                                {% if task["due_at"] %}
-                                    Due {{ task["due_at"] }}
-                                {% else %}
-                                    No due date
-                                {% endif %}
-                            </li>
-                        </ul>
-
-                        <div class="task__actions">
-                            <form
-                                method="POST"
-                                action="{{ url_for('complete_task', task_id=task['id']) }}"
-                            >
-                                <button class="btn btn--primary btn--small" type="submit">
-                                    Mark complete
-                                </button>
-                            </form>
-
-                            <form
-                                method="POST"
-                                action="{{ url_for('delete_task', task_id=task['id']) }}"
-                            >
-                                <button class="btn btn--danger btn--small" type="submit">
-                                    Delete
-                                </button>
-                            </form>
-                        </div>
-                    </li>
+                    {% set show_goal = True %}
+                    {% include "task_card.html" %}
                 {% endfor %}
             </ul>
         {% else %}
@@ -92,50 +45,8 @@
         {% if completed_tasks %}
             <ul class="task-list">
                 {% for task in completed_tasks %}
-                    <li class="task task--completed">
-                        <div>
-                            <h3 class="task__title">{{ task["title"] }}</h3>
-
-                            {% if task["description"] %}
-                                <p class="task__description">{{ task["description"] }}</p>
-                            {% endif %}
-                        </div>
-
-                        <ul class="task__meta">
-                            <li>
-                                <span class="badge badge--completed">
-                                    {{ task["status"]|capitalize }}
-                                </span>
-                            </li>
-
-                            <li>
-                                <span class="badge badge--priority badge--{{ task["priority"] }}">
-                                    {{ task["priority"]|capitalize }} priority
-                                </span>
-                            </li>
-
-                            <li>
-                                {% if task["due_at"] %}
-                                    Due {{ task["due_at"] }}
-                                {% else %}
-                                    No due date
-                                {% endif %}
-                            </li>
-
-                            <li>Completed {{ task["completed_at"] }}</li>
-                        </ul>
-
-                        <div class="task__actions">
-                            <form
-                                method="POST"
-                                action="{{ url_for('delete_task', task_id=task['id']) }}"
-                            >
-                                <button class="btn btn--danger btn--small" type="submit">
-                                    Delete
-                                </button>
-                            </form>
-                        </div>
-                    </li>
+                    {% set show_goal = True %}
+                    {% include "task_card.html" %}
                 {% endfor %}
             </ul>
         {% else %}

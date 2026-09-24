@@ -20,8 +20,9 @@
                 through the list one action at a time.
             </p>
             <p class="muted">
-                Goals, commitments and progress analytics will be added in later
-                milestones and will appear on this dashboard.
+                Goals group related tasks under one outcome you are working
+                towards. Commitments and progress analytics will be added in
+                later milestones and will appear on this dashboard.
             </p>
         </div>
     </section>
@@ -46,6 +47,20 @@
                     Review everything pending and close out what you have finished.
                 </span>
                 <span class="action-card__cta">Open tasks</span>
+            </a>
+
+            <a class="action-card" href="{{ url_for('goals') }}">
+                <span class="action-card__label">Goals</span>
+                <span class="action-card__text">
+                    {% if active_goals %}
+                        {{ active_goals }}
+                        active goal{% if active_goals != 1 %}s{% endif %} &middot;
+                        grouped tasks you are working towards.
+                    {% else %}
+                        Group related tasks under an outcome you are working towards.
+                    {% endif %}
+                </span>
+                <span class="action-card__cta">Open goals</span>
             </a>
         </div>
     </section>

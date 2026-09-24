@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. #}
+
+{% block title %}{{ goal["title"] }} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Goal</p>
+            <h1>{{ goal["title"] }}</h1>
+            <p class="page-subtitle">
+                The tasks below are the steps that move this goal forward.
+            </p>
+        </div>
+
+        <div class="page-header__actions">
+            {% if goal["status"] != "completed" %}
+                <form
+                    method="POST"
+                    action="{{ url_for('complete_goal', goal_id=goal['id']) }}"
+                >
+                    <button class="btn btn--primary" type="submit">Mark complete</button>
+                </form>
+            {% endif %}
+
+            <a
+                class="btn btn--ghost"
+                href="{{ url_for('edit_goal', goal_id=goal['id']) }}"
+            >Edit goal</a>
+
+            <form
+                method="POST"
+                action="{{ url_for('delete_goal', goal_id=goal['id']) }}"
+            >
+                <button class="btn btn--danger" type="submit">Delete</button>
+            </form>
+        </div>
+    </header>
+
+    <section class="section" aria-labelledby="details-heading">
+        <div class="section__header">
+            <h2 id="details-heading">Details</h2>
+        </div>
+
+        <div class="card">
+            <dl class="meta-list">
+                <div class="meta-list__item">
+                    <dt>Status</dt>
+                    <dd>
+                        <span
+                            class="badge{% if goal["status"] == "completed" %} badge--completed{% else %} badge--active{% endif %}"
+                        >{{ goal["status"]|capitalize }}</span>
+                    </dd>
+                </div>
+
+                <div class="meta-list__item">
+                    <dt>Deadline</dt>
+                    <dd>
+                        {% if goal["deadline"] %}
+                            {{ goal["deadline"] }}
+                        {% else %}
+                            No deadline
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div class="meta-list__item">
+                    <dt>Created</dt>
+                    <dd>{{ goal["created_at"] }}</dd>
+                </div>
+            </dl>
+
+            {% if goal["description"] %}
+                <p class="muted">{{ goal["description"] }}</p>
+            {% else %}
+                <p class="muted">No description yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section" aria-labelledby="goal-tasks-heading">
+        <div class="section__header">
+            <h2 id="goal-tasks-heading">Tasks for this goal</h2>
+            <span class="count">{{ open_tasks|length + completed_tasks|length }}</span>
+
+            <a
+                class="btn btn--primary btn--small"
+                href="{{ url_for('new_task', goal_id=goal['id']) }}"
+            >Create task</a>
+        </div>
+
+        {% if open_tasks %}
+            <ul class="task-list">
+                {% for task in open_tasks %}
+                    {% set show_goal = False %}
+                    {% include "task_card.html" %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                No open tasks for this goal yet.
+                <a href="{{ url_for('new_task', goal_id=goal['id']) }}">Add the first one</a>.
+            </p>
+        {% endif %}
+    </section>
+
+    {% if completed_tasks %}
+        <section class="section" aria-labelledby="goal-completed-heading">
+            <div class="section__header">
+                <h2 id="goal-completed-heading">Completed tasks</h2>
+                <span class="count">{{ completed_tasks|length }}</span>
+            </div>
+
+            <ul class="task-list">
+                {% for task in completed_tasks %}
+                    {% set show_goal = False %}
+                    {% include "task_card.html" %}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <p class="muted">
+        <a href="{{ url_for('goals') }}">Back to all goals</a>
+    </p>
+{% endblock %}

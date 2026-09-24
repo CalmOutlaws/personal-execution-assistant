@@ -3,6 +3,9 @@
 {% block title %}New Task - EXECUTE{% endblock %}
 
 {% block content %}
+    {# A goal can be preselected when the form is opened from a goal page. #}
+    {% set selected_goal_id = request.form.get('goal_id', request.args.get('goal_id', '')) %}
+
     <header class="page-header">
         <div class="page-header__text">
             <p class="eyebrow">New task</p>
@@ -58,6 +61,26 @@
                 name="due_at"
                 value="{{ request.form.get('due_at', '') }}"
             >
+        </div>
+
+        <div class="field">
+            <label for="goal_id">
+                Goal <span class="field__hint">optional</span>
+            </label>
+            <select id="goal_id" name="goal_id">
+                <option value="">No goal</option>
+                {% for goal in goals %}
+                    <option
+                        value="{{ goal['id'] }}"
+                        {% if selected_goal_id == goal['id']|string %}selected{% endif %}
+                    >{{ goal["title"] }}</option>
+                {% endfor %}
+            </select>
+            <p class="field__hint">
+                Only your own active goals are listed.
+                <a href="{{ url_for('new_goal') }}">Create a goal</a> to group
+                related tasks.
+            </p>
         </div>
 
         <div class="field">
