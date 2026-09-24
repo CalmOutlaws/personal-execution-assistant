@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EXECUTE{% endblock %}</title>
+</head>
+<body>
+    <!-- AI disclosure: this layout and the task pages were created with AI assistance. -->
+    <nav>
+        <a href="{{ url_for('index') }}">Dashboard</a>
+
+        {% if session.get("user_id") %}
+            <a href="{{ url_for('tasks') }}">Tasks</a>
+            <a href="{{ url_for('new_task') }}">Create Task</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

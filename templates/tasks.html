@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block title %}Tasks - EXECUTE{% endblock %}
+
+{% block content %}
+    <h1>Your tasks</h1>
+
+    <p>
+        <a href="{{ url_for('new_task') }}">Create a new task</a>
+    </p>
+
+    <h2>Pending</h2>
+
+    {% if pending_tasks %}
+        <ul>
+            {% for task in pending_tasks %}
+                <li>
+                    <h3>{{ task["title"] }}</h3>
+
+                    <p>Status: {{ task["status"] }}</p>
+                    <p>Priority: {{ task["priority"] }}</p>
+
+                    {% if task["description"] %}
+                        <p>{{ task["description"] }}</p>
+                    {% endif %}
+
+                    <p>
+                        Due:
+                        {% if task["due_at"] %}
+                            {{ task["due_at"] }}
+                        {% else %}
+                            no due date
+                        {% endif %}
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('complete_task', task_id=task['id']) }}"
+                    >
+                        <button type="submit">Mark complete</button>
+                    </form>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_task', task_id=task['id']) }}"
+                    >
+                        <button type="submit">Delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No pending tasks.</p>
+    {% endif %}
+
+    <h2>Completed</h2>
+
+    {% if completed_tasks %}
+        <ul>
+            {% for task in completed_tasks %}
+                <li>
+                    <h3>{{ task["title"] }}</h3>
+
+                    <p>Status: {{ task["status"] }}</p>
+                    <p>Priority: {{ task["priority"] }}</p>
+
+                    {% if task["description"] %}
+                        <p>{{ task["description"] }}</p>
+                    {% endif %}
+
+                    <p>
+                        Due:
+                        {% if task["due_at"] %}
+                            {{ task["due_at"] }}
+                        {% else %}
+                            no due date
+                        {% endif %}
+                    </p>
+
+                    <p>Completed at: {{ task["completed_at"] }}</p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_task', task_id=task['id']) }}"
+                    >
+                        <button type="submit">Delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No completed tasks yet.</p>
+    {% endif %}
+{% endblock %}
