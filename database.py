@@ -1,3 +1,9 @@
+"""SQLite helpers for EXECUTE: connection handling and schema setup.
+
+AI disclosure (CS50 final project requirement): created with AI assistance,
+reviewed and tested by the author.
+"""
+
 import sqlite3
 
 DATABASE = "execute.db"

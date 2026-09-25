@@ -1,19 +1,10 @@
 import os
+import sqlite3
 from datetime import datetime
 from functools import wraps
 
 from dotenv import load_dotenv
-from flask import (
-    Flask,
-    abort,
-    flash,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    session,
-)
-from flask import Flask, abort, render_template, request, redirect, url_for, session
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import get_db, init_db
@@ -23,15 +14,21 @@ from parser import parse_input
 
 # AI disclosure (CS50 final project requirement): this project was written with
 # the help of an AI coding assistant. AI assistance was used for the task, goal,
-# event, commitment, natural-language Quick Add confirmation, goal breakdown,
-# recurring tasks, browser notifications, search/filtering, and associated
-# templates were created with AI assistance; every change was reviewed and
-# tested by the author.
+# event, commitment, Quick Add interpretation and confirmation, goal breakdown,
+# recurring tasks, search and filtering, browser notifications, voice input and
+# the associated templates; every change was reviewed and tested by the author.
 
 load_dotenv()
 
+_secret_key = os.environ.get("SECRET_KEY")
+if not _secret_key:
+    raise RuntimeError(
+        "SECRET_KEY is not set. Create a .env file containing a SECRET_KEY "
+        "value before starting the application."
+    )
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+app.config["SECRET_KEY"] = _secret_key
 
 PRIORITIES = ("low", "medium", "high")
 
@@ -307,11 +304,11 @@ def index():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"].strip()
-        password = request.form["password"]
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
 
         if not username or not password:
-            return "Username and password are required."
+            return "Username and password are required.", 400
 
         password_hash = generate_password_hash(password)
 
@@ -323,9 +320,9 @@ def register():
                 (username, password_hash),
             )
             connection.commit()
-        except Exception:
+        except sqlite3.IntegrityError:
             connection.close()
-            return "Username already exists."
+            return "Username already exists.", 400
 
         connection.close()
 
@@ -337,8 +334,8 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"].strip()
-        password = request.form["password"]
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
 
         connection = get_db()
 
@@ -352,7 +349,7 @@ def login():
         if user is None or not check_password_hash(
             user["password_hash"], password
         ):
-            return "Invalid username or password."
+            return "Invalid username or password.", 400
 
         session["user_id"] = user["id"]
         session["username"] = user["username"]
@@ -1618,4 +1615,4 @@ def delete_commitment(commitment_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(debug=False)
