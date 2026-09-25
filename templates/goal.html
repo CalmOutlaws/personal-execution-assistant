@@ -30,6 +30,13 @@
                 href="{{ url_for('edit_goal', goal_id=goal['id']) }}"
             >Edit goal</a>
 
+            {% if goal["status"] == "active" %}
+                <a
+                    class="btn btn--ghost"
+                    href="{{ url_for('goal_breakdown', goal_id=goal['id']) }}"
+                >Break down this goal</a>
+            {% endif %}
+
             <form
                 method="POST"
                 action="{{ url_for('delete_goal', goal_id=goal['id']) }}"

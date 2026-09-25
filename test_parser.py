@@ -12,6 +12,7 @@ import unittest
 from datetime import datetime, timedelta
 
 import app as execute
+import breakdown
 import database
 from parser import parse_input
 
@@ -691,6 +692,168 @@ class QuickAddRouteTests(QuickAddTestBase):
             "type": "event", "title": "Meet Rahul", "starts_at": None,
         })
         self.assertEqual(response.status_code, 400)
+
+
+class BreakdownModuleTests(unittest.TestCase):
+    """AI disclosure: these tests were created with AI assistance and reviewed."""
+
+    def test_suggest_steps_is_deterministic(self):
+        first = breakdown.suggest_steps("Learn C++")
+        second = breakdown.suggest_steps("Learn C++")
+        self.assertEqual(first, second)
+        self.assertEqual(
+            breakdown.suggest_steps("Learn C++", "2026-10-01 00:00:00"), first
+        )
+
+    def test_goal_titles_produce_three_to_five_suggestions(self):
+        titles = ("Learn C++", "Get an internship", "Run a half marathon",
+                  "Prepare for the final exam")
+        for title in titles:
+            with self.subTest(title=title):
+                steps = breakdown.suggest_steps(title)
+                self.assertGreaterEqual(len(steps), 3)
+                self.assertLessEqual(len(steps), 5)
+                for step in steps:
+                    self.assertTrue(step.strip())
+
+    def test_generic_titles_still_produce_bounded_suggestions(self):
+        steps = breakdown.suggest_steps("Do the thing")
+        self.assertGreaterEqual(len(steps), 3)
+        self.assertLessEqual(len(steps), 5)
+
+    def test_breakdown_module_has_no_flask_sqlite_or_network_imports(self):
+        path = os.path.join(os.path.dirname(__file__), "breakdown.py")
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read().lower()
+        self.assertNotRegex(source, r"(?m)^\s*(?:import|from)\s+(?:flask|sqlite3)")
+        self.assertNotIn("urllib", source)
+        self.assertNotIn("requests", source)
+
+    def test_breakdown_module_does_not_claim_ai_generation(self):
+        path = os.path.join(os.path.dirname(__file__), "breakdown.py")
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read().lower()
+        self.assertNotIn("ai-generated", source)
+
+
+class GoalBreakdownRouteTests(QuickAddTestBase):
+    """AI disclosure: these tests were created with AI assistance and reviewed."""
+
+    def create_goal(self, title="Learn C++", status="active", user_id=1):
+        connection = database.get_db()
+        cursor = connection.execute(
+            "INSERT INTO goals (user_id, title, status) VALUES (?, ?, ?)",
+            (user_id, title, status),
+        )
+        goal_id = cursor.lastrowid
+        connection.commit()
+        connection.close()
+        return goal_id
+
+    def task_rows(self, goal_id):
+        connection = database.get_db()
+        rows = connection.execute(
+            "SELECT * FROM tasks WHERE goal_id = ? ORDER BY id", (goal_id,)
+        ).fetchall()
+        connection.close()
+        return rows
+
+    def confirm(self, goal_id, data):
+        return self.client.post(f"/goals/{goal_id}/breakdown/confirm", data=data)
+
+    def test_breakdown_get_requires_authentication(self):
+        goal_id = self.create_goal()
+        self.client.get("/logout")
+        self.assertEqual(
+            self.client.get(f"/goals/{goal_id}/breakdown").status_code, 302
+        )
+
+    def test_breakdown_get_requires_goal_ownership(self):
+        goal_id = self.create_goal(user_id=1)
+        connection = database.get_db()
+        connection.execute(
+            "INSERT INTO users (id, username, password_hash) VALUES (2, ?, ?)",
+            ("other", "test-hash"),
+        )
+        connection.commit()
+        connection.close()
+        with self.client.session_transaction() as session:
+            session["user_id"] = 2
+            session["username"] = "other"
+        self.assertEqual(
+            self.client.get(f"/goals/{goal_id}/breakdown").status_code, 404
+        )
+
+    def test_inactive_or_missing_goal_is_rejected(self):
+        completed_id = self.create_goal(title="Done", status="completed")
+        self.assertEqual(
+            self.client.get(f"/goals/{completed_id}/breakdown").status_code, 404
+        )
+        self.assertEqual(
+            self.confirm(completed_id, {"selected": "0"}).status_code, 404
+        )
+        self.assertEqual(self.client.get("/goals/99999/breakdown").status_code, 404)
+
+    def test_confirmation_requires_valid_pending_state(self):
+        goal_id = self.create_goal()
+        response = self.confirm(goal_id, {"selected": "0", "title-0": "Step"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.task_rows(goal_id), [])
+
+    def test_selected_tasks_are_created_with_correct_defaults(self):
+        goal_id = self.create_goal()
+        self.client.get(f"/goals/{goal_id}/breakdown")
+        data = {"selected": ["0", "2"], "title-0": "First step",
+                "title-2": "Third step"}
+        response = self.confirm(goal_id, data)
+        self.assertEqual(response.status_code, 302)
+        rows = self.task_rows(goal_id)
+        self.assertEqual([row["title"] for row in rows], ["First step", "Third step"])
+        for row in rows:
+            self.assertEqual(row["user_id"], 1)
+            self.assertEqual(row["goal_id"], goal_id)
+            self.assertEqual(row["status"], "pending")
+            self.assertEqual(row["priority"], "medium")
+            self.assertIsNone(row["due_at"])
+
+    def test_unselected_suggestions_are_not_created(self):
+        goal_id = self.create_goal()
+        self.client.get(f"/goals/{goal_id}/breakdown")
+        self.confirm(goal_id, {"selected": "1", "title-1": "Only this"})
+        rows = self.task_rows(goal_id)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["title"], "Only this")
+
+    def test_edited_titles_are_validated_server_side(self):
+        goal_id = self.create_goal()
+        self.client.get(f"/goals/{goal_id}/breakdown")
+        response = self.confirm(goal_id, {"selected": "0", "title-0": "   "})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.task_rows(goal_id), [])
+
+    def test_too_many_selected_tasks_are_rejected(self):
+        goal_id = self.create_goal()
+        self.client.get(f"/goals/{goal_id}/breakdown")
+        data = {"selected": [str(index) for index in range(6)]}
+        for index in range(6):
+            data["title-%d" % index] = "Step %d" % index
+        response = self.confirm(goal_id, data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.task_rows(goal_id), [])
+
+    def test_repeated_confirmation_cannot_duplicate_tasks(self):
+        goal_id = self.create_goal()
+        self.client.get(f"/goals/{goal_id}/breakdown")
+        data = {"selected": "0", "title-0": "First step"}
+        self.assertEqual(self.confirm(goal_id, data).status_code, 302)
+        self.assertEqual(self.confirm(goal_id, data).status_code, 400)
+        self.assertEqual(len(self.task_rows(goal_id)), 1)
+
+    def test_breakdown_links_to_goal_detail(self):
+        goal_id = self.create_goal()
+        body = self.client.get(f"/goals/{goal_id}").get_data(as_text=True)
+        self.assertIn("Break down this goal", body)
+        self.assertIn(f"/goals/{goal_id}/breakdown", body)
 
 
 if __name__ == "__main__":

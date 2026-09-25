@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance and reviewed by the author. #}
+{% block title %}Break down goal - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Break down goal</p>
+            <h1>{{ goal["title"] }}</h1>
+            <p class="page-subtitle">These are suggested tasks only. Select the steps you want, edit them if needed, and confirm. Nothing has been saved yet.</p>
+        </div>
+    </header>
+
+    {% if goal["deadline"] %}
+        <p class="muted">Goal deadline: {{ goal["deadline"] }}</p>
+    {% endif %}
+
+    {% if error %}
+        <div class="alert alert--error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    {% if errors %}
+        <div class="alert alert--error" role="alert">
+            <ul>
+                {% for message in errors %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form class="form" method="POST" action="{{ url_for('confirm_goal_breakdown', goal_id=goal['id']) }}">
+        <section class="section interpretation-card" aria-labelledby="breakdown-heading">
+            <h2 id="breakdown-heading">Suggested tasks</h2>
+            {% for step in steps %}
+                <div class="field breakdown-step">
+                    <span class="breakdown-step__include">
+                        <input type="checkbox" id="step-{{ loop.index0 }}" name="selected" value="{{ loop.index0 }}" {% if loop.index0|string in selected %}checked{% endif %}>
+                        <label for="step-{{ loop.index0 }}">Include step {{ loop.index }}</label>
+                    </span>
+                    <label for="title-{{ loop.index0 }}">Step {{ loop.index }} title</label>
+                    <input type="text" id="title-{{ loop.index0 }}" name="title-{{ loop.index0 }}" value="{{ step }}" maxlength="200">
+                </div>
+            {% endfor %}
+        </section>
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">Confirm selected tasks</button>
+            <a class="btn btn--ghost" href="{{ url_for('goal_detail', goal_id=goal['id']) }}">Back to goal</a>
+        </div>
+    </form>
+{% endblock %}

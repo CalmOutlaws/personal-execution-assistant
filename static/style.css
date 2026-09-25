@@ -827,6 +827,27 @@ a:hover {
     margin: 0;
 }
 
+/* Goal breakdown checklist stays readable on narrow screens. */
+.breakdown-step {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.breakdown-step__include {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.breakdown-step input[type="text"] {
+    grid-column: 1 / -1;
+}
+
 @media (max-width: 560px) {
     .definition-list > div {
         grid-template-columns: 1fr;
