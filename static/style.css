@@ -762,6 +762,33 @@ a:hover {
     min-height: 120px;
 }
 
+/* Voice input row keeps the existing textarea usable at all widths. */
+.quick-add-input-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+}
+
+.quick-add-voice {
+    white-space: nowrap;
+}
+
+.quick-add-voice[data-voice-state="listening"] {
+    border-color: var(--accent);
+    border-left: 3px solid var(--accent);
+}
+
+@media (max-width: 560px) {
+    .quick-add-input-row {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-add-voice {
+        justify-self: start;
+    }
+}
+
 .interpretation-card {
     max-width: 760px;
 }

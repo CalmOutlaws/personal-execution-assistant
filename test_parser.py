@@ -438,6 +438,62 @@ class QuickAddRouteTests(QuickAddTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Quick Add", self.text(response))
 
+    def test_quick_add_page_offers_text_only_voice_input(self):
+        # Voice recognition only fills the existing input; POST /quick-add,
+        # parser.py, confirmation, and persistence are unchanged.
+        response = self.client.get("/quick-add")
+        body = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="voice-input-button"', body)
+        self.assertIn('type="button"', body)
+        self.assertIn('aria-label="Start voice input"', body)
+        self.assertIn('id="voice-input-status"', body)
+        self.assertIn('aria-live="polite"', body)
+        self.assertIn('id="text" name="text"', body)
+        self.assertIn('type="submit"', body)
+        self.assertIn("quick_add.js", body)
+
+    def test_quick_add_voice_script_is_text_only(self):
+        path = os.path.join(os.path.dirname(__file__), "static", "quick_add.js")
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read()
+        self.assertIn("SpeechRecognition", source)
+        self.assertIn("webkitSpeechRecognition", source)
+        self.assertIn("getElementById", source)
+        self.assertIn('continuous = false', source)
+        self.assertIn('interimResults = false', source)
+        self.assertIn('maxAlternatives = 1', source)
+        # Primary language stays en-IN with an en-US fallback for browsers
+        # whose speech service rejects en-IN (often surfaced as network or
+        # language-not-supported).
+        self.assertIn('PRIMARY_LANG = "en-IN"', source)
+        self.assertIn('FALLBACK_LANG = "en-US"', source)
+        self.assertIn(".value", source)
+        self.assertNotIn("fetch(", source)
+        self.assertNotIn(".submit()", source)
+
+    def test_quick_add_voice_script_exposes_browser_error(self):
+        path = os.path.join(os.path.dirname(__file__), "static", "quick_add.js")
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read()
+        # onerror must read the real event.error value.
+        self.assertIn("event.error", source)
+        self.assertIn("onerror", source)
+        self.assertIn("onend", source)
+        # onend must preserve a detailed error instead of resetting to idle.
+        self.assertIn("__voiceError", source)
+        for name in ("not-allowed", "no-speech", "audio-capture", "network",
+                     "aborted", "service-not-allowed"):
+            self.assertIn(name, source)
+        # A network failure means this browser's speech service is unavailable;
+        # users are directed to another browser or typed input, with (network)
+        # retained only as a development diagnostic.
+        self.assertIn(
+            "Speech recognition is unavailable in this browser right now",
+            source,
+        )
+        self.assertIn("Try another browser or type your input.", source)
+
     def test_valid_input_renders_interpretation(self):
         response = self.client.post(
             "/quick-add", data={"text": "Meet Rahul tomorrow at 6 PM"}

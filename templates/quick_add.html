@@ -1,6 +1,8 @@
 {% extends "layout.html" %}
 
 {# AI disclosure: this template was created with AI assistance and reviewed by the author. #}
+{# AI disclosure: voice-input microphone control added with AI assistance; typed Quick Add flow unchanged. #}
+{# AI disclosure: voice onerror/onend/lang debug handling added with AI assistance; no redesign or dependencies. #}
 {% block title %}Quick Add - EXECUTE{% endblock %}
 
 {% block content %}
@@ -16,15 +18,23 @@
         <div class="alert alert--error" role="alert">{{ error }}</div>
     {% endif %}
 
-    <form class="form quick-add-form" method="POST" action="{{ url_for('quick_add') }}">
+    <form class="form quick-add-form" id="quick-add-form" method="POST" action="{{ url_for('quick_add') }}">
         <div class="field">
             <label for="text">What would you like to add?</label>
-            <textarea id="text" name="text" rows="4" required placeholder="e.g. Meet Rahul at Church Street tomorrow at 6 PM">{{ text }}</textarea>
+            <div class="quick-add-input-row">
+                <textarea id="text" name="text" rows="4" required placeholder="e.g. Meet Rahul at Church Street tomorrow at 6 PM">{{ text }}</textarea>
+                <button class="btn btn--ghost quick-add-voice" id="voice-input-button" type="button" aria-label="Start voice input" aria-pressed="false" data-voice-state="idle"><span aria-hidden="true">&#127908;</span> <span data-voice-label>Start voice input</span></button>
+            </div>
+            <p class="field__hint" id="voice-input-status" role="status" aria-live="polite">Type your item, or use the microphone to dictate it.</p>
             <p class="field__hint">Try an event, commitment, or task in plain language.</p>
         </div>
         <div class="form-actions">
-            <button class="btn btn--primary" type="submit">Interpret input</button>
+            <button class="btn btn--primary" type="submit">Understand</button>
             <a class="btn btn--ghost" href="{{ url_for('index') }}">Cancel</a>
         </div>
     </form>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='quick_add.js') }}" defer></script>
 {% endblock %}
