@@ -182,4 +182,35 @@
             </p>
         {% endif %}
     </section>
+
+    {# AI disclosure: notification section added with AI assistance; no notification service used. #}
+    <section class="section" aria-labelledby="notifications-heading">
+        <div class="card">
+            <h2 id="notifications-heading">Reminders</h2>
+            <p class="muted" id="notification-status" role="status">Notifications are off.</p>
+            <p class="muted">
+                Browser notifications work while EXECUTE is open in this browser.
+                Nothing is sent by email and no background service is used.
+            </p>
+            <button class="btn btn--ghost" id="enable-notifications-button" type="button">Enable notifications</button>
+            <div hidden aria-hidden="true">
+                {% for task in notify_tasks %}
+                    <span class="notify-item" data-when="{{ task['due_at'] }}" data-notify-key="task-{{ task['id'] }}" data-notify-title="{{ task['title'] }}" data-notify-kind="task"></span>
+                {% endfor %}
+                {% for event in notify_events %}
+                    <span class="notify-item" data-when="{{ event['starts_at'] }}" data-notify-key="event-{{ event['id'] }}" data-notify-title="{{ event['title'] }}" data-notify-kind="event"></span>
+                {% endfor %}
+                {% for task in notify_overdue_tasks %}
+                    <span class="notify-item" data-when="{{ task['due_at'] }}" data-notify-key="overdue-task-{{ task['id'] }}" data-notify-title="{{ task['title'] }}" data-notify-kind="overdue"></span>
+                {% endfor %}
+                {% for commitment in notify_overdue_commitments %}
+                    <span class="notify-item" data-when="{{ commitment['deadline'] }}" data-notify-key="overdue-commitment-{{ commitment['id'] }}" data-notify-title="{{ commitment['title'] }}" data-notify-kind="overdue"></span>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='notifications.js') }}" defer></script>
 {% endblock %}

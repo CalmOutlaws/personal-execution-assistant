@@ -43,6 +43,7 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             completed_at TIMESTAMP,
+            recurrence TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE SET NULL
         );
@@ -72,6 +73,13 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
     """)
+
+    # Minimal idempotent migration for databases created before recurrence.
+    columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(tasks)")
+    }
+    if "recurrence" not in columns:
+        connection.execute("ALTER TABLE tasks ADD COLUMN recurrence TEXT")
 
     connection.commit()
     connection.close()

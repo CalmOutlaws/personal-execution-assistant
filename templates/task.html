@@ -96,6 +96,20 @@
             <p class="field__hint">Used to flag how urgent this task is.</p>
         </div>
 
+        <div class="field">
+            <label for="recurrence">Repeats</label>
+            <select id="recurrence" name="recurrence">
+                <option value="" {% if request.form.get('recurrence', '') == '' %}selected{% endif %}>Does not repeat</option>
+                {% for item in recurrences %}
+                    <option
+                        value="{{ item }}"
+                        {% if request.form.get('recurrence', '') == item %}selected{% endif %}
+                    >{{ item|capitalize }}</option>
+                {% endfor %}
+            </select>
+            <p class="field__hint">Recurring tasks create the next occurrence when completed.</p>
+        </div>
+
         <div class="form-actions">
             <button class="btn btn--primary" type="submit">Create task</button>
             <a class="btn btn--ghost" href="{{ url_for('tasks') }}">Cancel</a>

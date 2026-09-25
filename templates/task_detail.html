@@ -18,6 +18,7 @@
             <div class="meta-list__item"><dt>Status</dt><dd>{{ task['status']|capitalize }}</dd></div>
             <div class="meta-list__item"><dt>Priority</dt><dd>{{ task['priority']|capitalize }}</dd></div>
             {% if task['due_at'] %}<div class="meta-list__item"><dt>Due</dt><dd>{{ task['due_at'] }}</dd></div>{% endif %}
+            <div class="meta-list__item"><dt>Repeats</dt><dd>{% if task['recurrence'] %}{{ task['recurrence']|capitalize }}{% else %}Does not repeat{% endif %}</dd></div>
         </dl>
     </section>
 {% endblock %}

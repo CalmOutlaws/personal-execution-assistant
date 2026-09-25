@@ -31,6 +31,14 @@
             {% endif %}
         </li>
 
+        <li>
+            {% if task["recurrence"] %}
+                Repeats {{ task["recurrence"] }}
+            {% else %}
+                Does not repeat
+            {% endif %}
+        </li>
+
         {% if show_goal and task["goal_title"] %}
             <li>
                 Goal:

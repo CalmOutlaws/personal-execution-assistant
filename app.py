@@ -17,6 +17,8 @@ from flask import Flask, abort, render_template, request, redirect, url_for, ses
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import get_db, init_db
+from breakdown import MAX_SUGGESTIONS, suggest_steps
+from recurrence import RECURRENCES, is_valid_recurrence, next_due_at
 from parser import parse_input
 
 # AI disclosure (CS50 final project requirement): this project was written with
@@ -31,6 +33,18 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 PRIORITIES = ("low", "medium", "high")
+
+RECURRENCE_OPTIONS = (None,) + RECURRENCES
+
+
+def _normalize_recurrence(value):
+    """Return allowlisted recurrence or None; reject anything else."""
+    if value is None or str(value).strip() == "":
+        return None
+    text = str(value).strip().lower()
+    if text in RECURRENCES:
+        return text
+    return False
 
 
 def parse_datetime(value):
@@ -190,6 +204,51 @@ def index():
             (session["user_id"],),
         ).fetchall()
 
+        # Notification candidates for the client-side V1 poller: upcoming
+        # pending tasks, upcoming events, and overdue pending items. Rendered
+        # as data attributes so plain HTML works without JS too.
+        notify_tasks = connection.execute(
+            """
+            SELECT id, title, due_at FROM tasks
+            WHERE user_id = ? AND status = 'pending' AND due_at IS NOT NULL
+            ORDER BY due_at, id
+            LIMIT 10
+            """,
+            (session["user_id"],),
+        ).fetchall()
+
+        notify_events = connection.execute(
+            """
+            SELECT id, title, starts_at FROM events
+            WHERE user_id = ? AND starts_at >= ?
+            ORDER BY starts_at, id
+            LIMIT 10
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
+        notify_overdue_tasks = connection.execute(
+            """
+            SELECT id, title, due_at FROM tasks
+            WHERE user_id = ? AND status = 'pending'
+                AND due_at IS NOT NULL AND due_at < ?
+            ORDER BY due_at, id
+            LIMIT 10
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
+        notify_overdue_commitments = connection.execute(
+            """
+            SELECT id, title, deadline FROM commitments
+            WHERE user_id = ? AND status = 'pending'
+                AND deadline IS NOT NULL AND deadline < ?
+            ORDER BY deadline, id
+            LIMIT 10
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
         connection.close()
 
         return render_template(
@@ -199,6 +258,10 @@ def index():
             upcoming_events=upcoming_events,
             pending_commitment_count=pending_commitment_count,
             next_commitments=next_commitments,
+            notify_tasks=notify_tasks,
+            notify_events=notify_events,
+            notify_overdue_tasks=notify_overdue_tasks,
+            notify_overdue_commitments=notify_overdue_commitments,
         )
 
     return "EXECUTE is running."
@@ -563,6 +626,7 @@ def new_task():
         due_at = request.form.get("due_at", "").strip()
         priority = request.form.get("priority", "").strip().lower()
         goal_id = request.form.get("goal_id", "").strip()
+        recurrence = _normalize_recurrence(request.form.get("recurrence", ""))
 
         errors = []
 
@@ -571,6 +635,10 @@ def new_task():
 
         if priority not in PRIORITIES:
             errors.append("Priority must be low, medium or high.")
+
+        if recurrence is False:
+            errors.append("Recurrence must be does not repeat, daily, weekly or monthly.")
+            recurrence = None
 
         normalized_due_at, due_at_is_valid = parse_datetime(due_at)
 
@@ -602,6 +670,7 @@ def new_task():
                     "task.html",
                     errors=errors,
                     priorities=PRIORITIES,
+                    recurrences=RECURRENCES,
                     goals=active_goals,
                 ),
                 400,
@@ -610,8 +679,8 @@ def new_task():
         # user_id always comes from the session, never from the submitted form.
         connection.execute(
             """
-            INSERT INTO tasks (user_id, goal_id, title, description, due_at, priority)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO tasks (user_id, goal_id, title, description, due_at, priority, recurrence)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session["user_id"],
@@ -620,6 +689,7 @@ def new_task():
                 description or None,
                 normalized_due_at,
                 priority,
+                recurrence,
             ),
         )
         connection.commit()
@@ -629,7 +699,10 @@ def new_task():
 
     connection.close()
 
-    return render_template("task.html", priorities=PRIORITIES, goals=active_goals)
+    return render_template(
+        "task.html", priorities=PRIORITIES, recurrences=RECURRENCES,
+        goals=active_goals,
+    )
 
 
 @app.route("/tasks/<int:task_id>/complete", methods=["POST"])
@@ -640,7 +713,7 @@ def complete_task(task_id):
     # Ownership check: the task must exist AND belong to the logged-in user,
     # so another user's task can never be modified.
     task = connection.execute(
-        "SELECT status FROM tasks WHERE id = ? AND user_id = ?",
+        "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
         (task_id, session["user_id"]),
     ).fetchone()
 
@@ -659,6 +732,37 @@ def complete_task(task_id):
             """,
             (task_id, session["user_id"]),
         )
+        # Recurring tasks spawn exactly one next pending occurrence. Repeat
+        # completion is idempotent: if a pending task with the same recurrence
+        # and next due date already exists, no second copy is created.
+        recurrence = task["recurrence"] if "recurrence" in task.keys() else None
+        if recurrence in RECURRENCES:
+            next_due = next_due_at(recurrence, task["due_at"])
+            existing = None
+            if next_due is not None:
+                existing = connection.execute(
+                    """
+                    SELECT id FROM tasks
+                    WHERE user_id = ? AND status = 'pending'
+                        AND title = ? AND recurrence = ?
+                        AND ((due_at IS NULL AND ? IS NULL) OR due_at = ?)
+                        AND id != ?
+                    """,
+                    (session["user_id"], task["title"], recurrence,
+                     next_due, next_due, task_id),
+                ).fetchone()
+            if existing is None:
+                connection.execute(
+                    """
+                    INSERT INTO tasks
+                        (user_id, goal_id, title, description, due_at,
+                         priority, status, recurrence)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+                    """,
+                    (session["user_id"], task["goal_id"], task["title"],
+                     task["description"], next_due, task["priority"],
+                     recurrence),
+                )
         connection.commit()
 
     connection.close()
@@ -879,6 +983,102 @@ def delete_goal(goal_id):
         abort(404)
 
     return redirect(url_for("goals"))
+
+
+@app.route("/goals/<int:goal_id>/breakdown")
+@login_required
+def goal_breakdown(goal_id):
+    """Show deterministic suggested tasks for an owned active goal."""
+    goal = load_owned_goal(goal_id)
+
+    if goal["status"] != "active":
+        abort(404)
+
+    steps = suggest_steps(goal["title"], goal["deadline"])
+    session["goal_breakdown"] = {"goal_id": goal_id, "steps": steps}
+    return render_template(
+        "goal_breakdown.html", goal=goal, steps=steps, selected=[],
+        errors=[], error=None,
+    )
+
+
+@app.route("/goals/<int:goal_id>/breakdown/confirm", methods=["POST"])
+@login_required
+def confirm_goal_breakdown(goal_id):
+    """Create selected suggested tasks as normal tasks linked to the goal."""
+    goal = load_owned_goal(goal_id)
+
+    if goal["status"] != "active":
+        abort(404)
+
+    pending = session.get("goal_breakdown")
+    if (not isinstance(pending, dict) or pending.get("goal_id") != goal_id
+            or not isinstance(pending.get("steps"), list)
+            or not pending["steps"]):
+        steps = suggest_steps(goal["title"], goal["deadline"])
+        return render_template(
+            "goal_breakdown.html", goal=goal, steps=steps, selected=[],
+            errors=[], error="The breakdown suggestions expired. Please try again.",
+        ), 400
+
+    selected_indexes = []
+    for raw in request.form.getlist("selected"):
+        try:
+            selected_indexes.append(int(raw))
+        except (TypeError, ValueError):
+            continue
+    selected_indexes = sorted(set(selected_indexes))
+
+    if not selected_indexes:
+        return render_template(
+            "goal_breakdown.html", goal=goal, steps=pending["steps"],
+            selected=[], errors=[],
+            error="Select at least one suggested task.",
+        ), 400
+
+    if len(selected_indexes) > MAX_SUGGESTIONS:
+        return render_template(
+            "goal_breakdown.html", goal=goal, steps=pending["steps"],
+            selected=[str(index) for index in selected_indexes],
+            errors=[], error="Select no more than five suggested tasks.",
+        ), 400
+
+    titles = []
+    errors = []
+    for index in selected_indexes:
+        if index < 0 or index >= len(pending["steps"]):
+            errors.append("One selected suggestion is invalid.")
+            continue
+        title = request.form.get("title-%d" % index, "").strip()[:200]
+        if not title:
+            errors.append("Each selected task needs a title.")
+        else:
+            titles.append(title)
+
+    if errors:
+        return render_template(
+            "goal_breakdown.html", goal=goal, steps=pending["steps"],
+            selected=[str(index) for index in selected_indexes],
+            errors=errors, error=None,
+        ), 400
+
+    connection = get_db()
+    try:
+        for title in titles:
+            connection.execute(
+                """
+                INSERT INTO tasks (user_id, goal_id, title, due_at, priority, status)
+                VALUES (?, ?, ?, NULL, 'medium', 'pending')
+                """,
+                (session["user_id"], goal_id, title),
+            )
+        connection.commit()
+    finally:
+        connection.close()
+
+    session.pop("goal_breakdown", None)
+    flash("Selected tasks created successfully.")
+    return redirect(url_for("goal_detail", goal_id=goal_id))
 
 
 @app.route("/events")
