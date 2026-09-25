@@ -2,11 +2,29 @@
 
 **Turn intentions into actions.**
 
+## Demo
+
+[Watch the demo on YouTube](https://youtu.be/M-jeP2faq9E)
+
 EXECUTE is a personal execution assistant written in Python with Flask and
-SQLite, submitted as a CS50x 2026 final project. The current version covers
-accounts, tasks, goals, events and commitments, and it captures free-form
-sentences, breaks a goal into suggested tasks, repeats tasks on a schedule,
-searches everything a user owns, and shows what needs attention on a dashboard.
+SQLite, submitted as the CS50x 2026 final project. It covers accounts, tasks,
+goals, events and commitments. It also captures free-form sentences, breaks a
+goal into suggested tasks, repeats tasks on a schedule, searches everything a
+user owns, and shows what needs attention on a dashboard.
+
+## Contents
+
+- [Demo](#demo)
+- [Project Description](#project-description)
+- [Current Features](#current-features)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [How It Works](#how-it-works)
+- [Security and Limitations](#security-and-limitations)
+- [Running Locally](#running-locally)
+- [Possible Future Work](#possible-future-work)
+- [AI Assistance Disclosure](#ai-assistance-disclosure)
+- [CS50x](#cs50x)
 
 ## Project Description
 
@@ -23,9 +41,9 @@ up on it until it is finished. Free-form, natural-language input is part of
 that: a sentence such as "Finish the problem set by Friday" can be captured
 without choosing a form or an item type by hand.
 
-The project is deliberately built up in small, verifiable milestones, and this
-document describes the features that are implemented today: an account, tasks
-with priorities, due dates and optional repeats, goals that group related tasks
+The project was built in small, verifiable milestones, and this document
+describes exactly what the submitted version implements: an account, tasks with
+priorities, due dates and optional repeats, goals that group related tasks
 together and can be broken into suggested steps, events that block out time in
 the calendar, commitments tracked separately from personal tasks, natural
 language capture with a confirmation step, search and filtering, and optional
@@ -43,10 +61,19 @@ production-ready.
   by checking the submitted password against the stored hash.
 - Session-based authentication. Every page that shows or changes user data
   requires a login, and anonymous requests for those pages are redirected to the
-  login form. Only the home page (the root URL), registration and login are
-  reachable without a session.
+  login form. Apart from the pages that hold no user data (the root URL,
+  registration, login and logout), every page needs a session.
 - The root URL (`/`) serves a public landing page to signed-out visitors, and
   redirects users who are already signed in to the dashboard.
+
+**Public landing page**
+
+- The root URL renders a static page for signed-out visitors that describes what
+  EXECUTE does, explains how to start, and links to registration and login.
+- The page holds no user data: the dashboard queries live behind `/dashboard`,
+  so an anonymous visitor can never be shown another account's items.
+- A visitor who is already signed in is redirected to the dashboard instead of
+  being shown the landing page again.
 
 **Tasks**
 
@@ -80,7 +107,8 @@ production-ready.
 
 - Create an event with a title, an optional description, a start date and time,
   an optional end date and time and an optional location.
-- List events, split into upcoming and past, ordered by start time.
+- List events, split into upcoming and past. Upcoming events are ordered by
+  start time, and past events are shown newest first.
 - Open an event detail page showing when and where it takes place.
 - Edit an event's title, description, start, end and location.
 - Delete an event.
@@ -113,20 +141,25 @@ production-ready.
   approximate period instead of being turned into an invented clock time.
 - If the sentence cannot be understood, the form returns the text with an
   explanation instead of guessing.
-- Two things worth noting about the interpretation: a bare twelve-hour time
-  without AM or PM ("at 5") is read as PM, and a date without a time is kept as
-  a date rather than given a made-up time.
+- Two details of the interpretation are worth stating plainly. A bare
+  twelve-hour time without AM or PM ("at 5") is read as PM. A date with no time
+  is shown in the preview as the date on its own, and it is stored at midnight
+  because the `due_at` and `deadline` columns hold timestamps.
 
 **Goal breakdown**
 
-- Any active goal has a "Break down this goal" action that suggests between
-  three and five concrete task titles, for example "Prepare or update resume for
-  summer internship" for a goal about an internship.
+- Any active goal has a "Break down this goal" action that suggests up to five
+  concrete task titles (every step template in this version supplies five), for
+  example "Prepare or update resume for summer internship" for a goal about an
+  internship.
 - Suggestions come from a small keyword map with a domain-neutral fallback, so a
   goal that matches no keyword still gets a usable list.
 - The user selects which suggestions to keep and can edit each title before
   confirming. Only the selected rows are created, as ordinary tasks linked to
   the goal, with no due dates and medium priority.
+- The suggestions are held in the signed session between the two requests. If
+  that preview is missing when the form is submitted, the page shows the
+  suggestions again and asks the user to confirm once more.
 
 **Recurring tasks**
 
@@ -156,8 +189,9 @@ production-ready.
 - The dashboard lives at `/dashboard`, which is both the page shown after logging
   in and the target of the redirect from the root URL. It opens with "Needs
   attention now" (overdue tasks and commitments) and "Coming next" (work that is
-  due soon), then explains how EXECUTE works and offers shortcut links to tasks,
-  goals, events and commitments, each of which shows the current count.
+  due soon), then explains how EXECUTE works and offers shortcuts for creating
+  and viewing tasks and for opening goals, events and commitments. The goals,
+  events and commitments shortcuts show the current count when there is one.
 - The page ends with the next upcoming events, the commitments that are still
   pending, and the reminders panel.
 
@@ -168,6 +202,9 @@ production-ready.
 - Dictation only writes text into the field. It never submits the form, and the
   sentence is interpreted by the same parser and confirmed in the same way as
   typed input.
+- Recognition starts in English (India) (`en-IN`) and retries once in `en-US`
+  when the browser reports that the language is unsupported or fails on the
+  network.
 - If the browser has no speech support, or the microphone is blocked, the button
   reports the problem and typing keeps working.
 
@@ -245,6 +282,8 @@ project/
 ├── test_home.py               # Automated checks for the landing page and the root redirect
 ├── .env                       # Local SECRET_KEY (ignored by git, not committed)
 ├── execute.db                 # SQLite database file (ignored by git, created on first run)
+├── README.md                  # This document
+├── .gitignore                 # Keeps .venv, .env, execute.db and caches out of git
 ├── templates/
 │   ├── layout.html            # Base layout: header, navigation, flash messages, footer
 │   ├── home.html              # Public landing page shown to signed-out visitors
@@ -252,10 +291,10 @@ project/
 │   ├── login.html             # Login form
 │   ├── dashboard.html         # Page shown after logging in, with the reminders panel
 │   ├── quick_add.html         # Quick Add sentence form, including the optional voice button
-│   ├── quick_add_confirmation.html # The interpreted sentence, reviewed before it is saved
+│   ├── quick_add_confirmation.html  # The interpreted sentence, reviewed before it is saved
 │   ├── tasks.html             # Task list with the status, priority and recurring filters
 │   ├── task.html              # Create-task form, including the goal and recurrence selectors
-│   ├── task_detail.html       # Single task page reached after a Quick Add confirmation
+│   ├── task_detail.html       # Single task page, reached from Quick Add or the dashboard
 │   ├── task_card.html         # Partial rendering a single task, shared by the task and goal pages
 │   ├── goals.html             # Goal list, split into active and completed
 │   ├── goal.html              # Goal detail page with the goal's tasks and breakdown action
@@ -284,6 +323,20 @@ Python with no Flask, database or network dependency, which keeps their
 behaviour reproducible and easy to test on its own.
 
 ## How It Works
+
+The application is split into four layers, and the split is deliberate.
+`app.py` is the orchestration layer: it reads the request, validates what was
+submitted, takes the owner from the session, runs the queries and either
+redirects or renders a template. `parser.py`, `breakdown.py` and `recurrence.py`
+are domain modules with no Flask, database, session or network dependency, which
+makes their behaviour reproducible and individually testable. `database.py` owns
+the connection helper and the schema, and the Jinja templates only render the
+data the routes hand to them. The two scripts in `static/` are optional
+enhancements layered on server-rendered, server-validated forms, so every page
+still works without JavaScript. The consequence is that the parts of the project
+worth arguing about - how a sentence is interpreted, how a goal is broken down,
+when the next occurrence of a repeating task falls - live outside the web layer
+and carry no state.
 
 - **Flask handles the web application.** `app.py` defines the routes for the
   landing page, dashboard, accounts, tasks, goals, events, commitments, Quick
@@ -322,9 +375,12 @@ behaviour reproducible and easy to test on its own.
 - **The application uses direct SQLite queries rather than an ORM.** Statements
   are written by hand with `?` placeholders, which keeps the SQL visible and
   avoids an extra layer of abstraction at this size.
-- The event and commitment pages use the existing `events` and `commitments`
-  tables, which needed no schema change: they already had the title,
-  description, owner, status and date columns each feature requires.
+- **Events and commitments needed no extra migration.** The `events` and
+  `commitments` tables created by `init_db()` already contain the title,
+  description, owner, status and date columns each of those features needs. The
+  only column added after the first version of the schema is `tasks.recurrence`,
+  which `init_db()` adds idempotently when it opens a database created before
+  recurring tasks existed.
 - **Completion is idempotent.** Marking a task, goal or commitment complete only
   writes `status` and `completed_at` while the row is still pending, so
   submitting the action twice cannot overwrite the original completion time.
@@ -340,8 +396,12 @@ behaviour reproducible and easy to test on its own.
   the session, and only then is a single row inserted.
 - **Goal breakdown is deterministic as well.** `breakdown.py` matches keywords
   in the goal title against a small set of step templates and falls back to
-  generic steps. It returns three to five titles and never invents due dates.
+  generic steps. It returns at most five titles and never invents due dates.
   Selected suggestions are created as ordinary tasks linked to the goal.
+- **The goal breakdown preview is re-checked, not trusted.** The suggested steps
+  are held in the signed session, and the confirm route verifies that the
+  preview still belongs to the same goal before it reads the edited titles from
+  the form and inserts ordinary tasks with the session user id.
 - **Recurrence is a small pure function.** `recurrence.py` validates the
   frequency and calculates the next due date, including month-end clamping,
   without touching the database. Completing a task uses it only after the task
@@ -381,6 +441,18 @@ behaviour reproducible and easy to test on its own.
 - **`SECRET_KEY` must be configured.** It is read from a local `.env` file
   through python-dotenv, and the application stops with a clear error at startup
   if it is missing instead of signing sessions with an empty key.
+- **Account rules are minimal.** Registration requires only a non-empty
+  username and password: there is no minimum password length or strength rule,
+  no password confirmation field, and no rate limiting or lockout after repeated
+  failed logins. A public deployment would need all of those.
+- **Authentication errors are plain responses.** A failed registration or login
+  returns a short plain-text `400` response instead of re-rendering the form
+  with the error attached, so the failure is visible but not styled like the
+  rest of the application.
+- **Session cookie settings are Flask's defaults.** The cookie is signed and
+  `HttpOnly`, but `Secure` is off and `SameSite` is unset. That is workable for
+  the local development setup described below, and it is not a hardened
+  production configuration.
 - **There are no CSRF tokens.** This is a deliberately small Flask application
   without Flask-WTF, so state-changing forms rely on the session cookie and the
   ownership checks rather than per-form tokens. This is a known limitation
@@ -405,12 +477,21 @@ python app.py
 ```
 
 Create a `.env` file containing a `SECRET_KEY` value before starting the
-application. Flask needs it to sign the session cookie, and the application
-stops with a clear error at startup if the value is missing. `execute.db` is
-created automatically on the first run, and the Flask development server then
-serves the application on its default local address (`http://127.0.0.1:5000`).
-The server starts with `debug=False`, which is the safe default for a submitted
-or shared copy.
+application:
+
+```text
+SECRET_KEY=replace-this-with-a-random-value
+```
+
+Flask needs that key to sign the session cookie, and the application stops with
+a clear error at startup if the value is missing. `execute.db` is created
+automatically on the first run, because the `python app.py` entry point calls
+`init_db()` before it starts serving; starting the application through the
+`flask` command instead would skip that call, so `python app.py` is the
+supported way to run it. The Flask development server then serves the
+application on its default local address (`http://127.0.0.1:5000`), and it
+starts with `debug=False`, which is the safe default for a submitted or shared
+copy. This is the development server rather than a production WSGI server.
 
 The test suite runs from the same environment:
 
@@ -418,10 +499,18 @@ The test suite runs from the same environment:
 python -m unittest discover -v
 ```
 
-## What's Next
+The tests use Flask's test client against temporary SQLite files. They cover the
+parser and the Quick Add flow, goal breakdown, the recurrence helper, search and
+the task filters, the landing page and the root redirect, the event and
+commitment routes with their ownership checks, and the permission gating and
+deduplication logic of the notification script (checked by reading the shipped
+`static/notifications.js`, since the suite does not run a browser).
 
-EXECUTE already captures input, organises it and surfaces it. The remaining work
-is mostly about judgement rather than new surface area.
+## Possible Future Work
+
+The submitted version covers the scope it set out to cover. If it were extended
+further, the most useful work would be about judgement rather than new surface
+area.
 
 - **Stronger dashboard prioritisation** - ranking what to do next, instead of
   listing everything that is overdue or due soon.
@@ -430,11 +519,28 @@ is mostly about judgement rather than new surface area.
 - **More sophisticated parsing** - longer sentences, more than one item in a
   sentence, and phrasing that the current pattern set does not cover.
 
+## AI Assistance Disclosure
+
+AI tools were used while building this project. The Python modules, the Jinja
+templates, the stylesheet and the tests were written with the help of an AI
+coding assistant, and every source file repeats that disclosure in a header
+comment. Each change was reviewed, run and tested by the author before it was
+kept: the behaviour was checked against the requirement it was meant to satisfy,
+the test suite was run, and the reasoning behind the non-obvious parts - the
+deterministic parsing rules, the session-scoped ownership checks, the recurrence
+calculation - is understood by the author and can be explained or changed on
+request. AI assistance was also used to draft and revise this README, and every
+claim in it was checked against the code.
+
+No AI model is part of the running application. There is no model call, no API
+key and no outbound network request in the code, and the only browser feature
+that may rely on a remote service is the optional voice dictation supplied by
+the browser itself.
+
 ## CS50x
 
-EXECUTE is the final project for CS50x 2026. It was written with the help of an
-AI coding assistant, as noted in the disclosure comments at the top of the
-source files, and every change was reviewed and tested by the author. The README
-and the application itself will be extended as the remaining milestones are
-completed.
+EXECUTE is my final project for CS50x 2026. The source code, the test suite and
+the video linked at the top of this document are the submission: the video walks
+through the finished application, and this README documents the design, the
+shipped features and the limitations of the submitted version.
 
