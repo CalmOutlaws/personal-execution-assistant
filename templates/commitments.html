@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. #}
+
+{% block title %}Commitments - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Commitment management</p>
+            <h1>Commitments</h1>
+            <p class="page-subtitle">
+                The things you have promised to do, kept apart from your own
+                personal tasks.
+            </p>
+        </div>
+
+        <a class="btn btn--primary" href="{{ url_for('new_commitment') }}">
+            Create commitment
+        </a>
+    </header>
+
+    <section class="section" aria-labelledby="pending-commitments-heading">
+        <div class="section__header">
+            <h2 id="pending-commitments-heading">Pending</h2>
+            <span class="count">{{ pending_commitments|length }}</span>
+        </div>
+
+        {% if pending_commitments %}
+            <ul class="commitment-list">
+                {% for commitment in pending_commitments %}
+                    {% include "commitment_card.html" %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                Nothing owed right now.
+                <a href="{{ url_for('new_commitment') }}">Create your first commitment</a>.
+            </p>
+        {% endif %}
+    </section>
+
+    <section class="section" aria-labelledby="completed-commitments-heading">
+        <div class="section__header">
+            <h2 id="completed-commitments-heading">Completed</h2>
+            <span class="count">{{ completed_commitments|length }}</span>
+        </div>
+
+        {% if completed_commitments %}
+            <ul class="commitment-list">
+                {% for commitment in completed_commitments %}
+                    {% include "commitment_card.html" %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                Nothing completed yet. Commitments you finish will appear here.
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

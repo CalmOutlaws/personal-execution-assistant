@@ -1,0 +1,70 @@
+{# One commitment card. Shared by the pending and completed sections of the
+   commitments page so both stay visually identical. Expects "commitment".
+   AI disclosure: created with AI assistance, reviewed and tested by the author. #}
+<li class="commitment{% if commitment["status"] == "completed" %} commitment--completed{% endif %}">
+    <div>
+        <h3 class="commitment__title">
+            <a href="{{ url_for('commitment_detail', commitment_id=commitment['id']) }}">
+                {{ commitment["title"] }}
+            </a>
+        </h3>
+
+        {% if commitment["description"] %}
+            <p class="commitment__description">{{ commitment["description"] }}</p>
+        {% endif %}
+    </div>
+
+    <ul class="commitment__meta">
+        <li>
+            <span class="badge{% if commitment["status"] == "completed" %} badge--completed{% endif %}">
+                {{ commitment["status"]|capitalize }}
+            </span>
+        </li>
+
+        {% if commitment["committed_to"] %}
+            <li>Committed to {{ commitment["committed_to"] }}</li>
+        {% endif %}
+
+        <li>
+            {% if commitment["deadline"] %}
+                Deadline {{ commitment["deadline"] }}
+            {% else %}
+                No deadline
+            {% endif %}
+        </li>
+
+        {% if commitment["status"] == "completed" %}
+            <li>Completed {{ commitment["completed_at"] }}</li>
+        {% endif %}
+    </ul>
+
+    <div class="commitment__actions">
+        <a
+            class="btn btn--ghost btn--small"
+            href="{{ url_for('commitment_detail', commitment_id=commitment['id']) }}"
+        >View commitment</a>
+
+        <a
+            class="btn btn--ghost btn--small"
+            href="{{ url_for('edit_commitment', commitment_id=commitment['id']) }}"
+        >Edit</a>
+
+        {% if commitment["status"] != "completed" %}
+            <form
+                method="POST"
+                action="{{ url_for('complete_commitment', commitment_id=commitment['id']) }}"
+            >
+                <button class="btn btn--primary btn--small" type="submit">
+                    Mark complete
+                </button>
+            </form>
+        {% endif %}
+
+        <form
+            method="POST"
+            action="{{ url_for('delete_commitment', commitment_id=commitment['id']) }}"
+        >
+            <button class="btn btn--danger btn--small" type="submit">Delete</button>
+        </form>
+    </div>
+</li>

@@ -480,9 +480,10 @@ a:hover {
 }
 
 /* ==========================================================================
-   8. Task, goal and event cards
+   8. Task, goal, event and commitment cards
    ========================================================================== */
 
+.commitment-list,
 .event-list,
 .task-list,
 .goal-list {
@@ -493,6 +494,7 @@ a:hover {
     list-style: none;
 }
 
+.commitment,
 .event,
 .task,
 .goal {
@@ -505,18 +507,22 @@ a:hover {
     background-color: var(--surface);
 }
 
+.commitment__title,
 .event__title,
 .task__title,
 .goal__title {
     font-size: 1.05rem;
 }
 
-/* A goal or event title links to its detail page, so keep it in the text colour */
+/* A goal, event or commitment title links to its detail page, so keep it in the
+   text colour */
+.commitment__title a,
 .event__title a,
 .goal__title a {
     color: var(--text);
 }
 
+.commitment__description,
 .event__description,
 .task__description,
 .goal__description {
@@ -526,6 +532,9 @@ a:hover {
     overflow-wrap: anywhere;
 }
 
+.commitment__title,
+.commitment__meta,
+.commitment__actions,
 .event__title,
 .event__meta,
 .event__actions,
@@ -538,6 +547,7 @@ a:hover {
     overflow-wrap: anywhere;
 }
 
+.commitment__meta,
 .event__meta,
 .task__meta,
 .goal__meta {
@@ -552,6 +562,7 @@ a:hover {
     list-style: none;
 }
 
+.commitment__actions,
 .event__actions,
 .task__actions,
 .goal__actions {
@@ -560,6 +571,7 @@ a:hover {
     gap: 10px;
 }
 
+.commitment__actions form,
 .event__actions form,
 .task__actions form,
 .goal__actions form {
@@ -610,24 +622,28 @@ a:hover {
     border-color: rgba(107, 155, 247, 0.4);
 }
 
-/* Completed tasks and goals are dimmed and marked, but stay readable */
+/* Completed tasks, goals and commitments are dimmed and marked, but stay readable */
+.commitment--completed,
 .task--completed,
 .goal--completed {
     border-left-color: rgba(95, 187, 152, 0.5);
     background-color: transparent;
 }
 
+.commitment--completed .commitment__title,
 .task--completed .task__title,
 .goal--completed .goal__title {
     color: var(--text-muted);
     font-weight: 600;
 }
 
+.commitment--completed .commitment__description,
 .task--completed .task__description,
 .goal--completed .goal__description {
     color: var(--text-faint);
 }
 
+.commitment--completed .commitment__title a,
 .goal--completed .goal__title a {
     color: var(--text-muted);
 }
@@ -803,11 +819,13 @@ a:hover {
         font-size: 1.45rem;
     }
 
+    .commitment__actions,
     .event__actions,
     .task__actions {
         width: 100%;
     }
 
+    .commitment__actions .btn,
     .event__actions .btn,
     .task__actions .btn {
         flex: 1 1 auto;

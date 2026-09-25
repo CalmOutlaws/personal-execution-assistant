@@ -9,9 +9,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, init_db
 
 # AI disclosure (CS50 final project requirement): this project was written with
-# the help of an AI coding assistant. AI assistance was used for the task, goal
-# and event management routes below, for the templates in templates/ and for
-# static/style.css; every change was reviewed and tested by the author.
+# the help of an AI coding assistant. AI assistance was used for the task, goal,
+# event and commitment management routes below, for the templates in templates/
+# and for static/style.css; every change was reviewed and tested by the author.
 
 load_dotenv()
 
@@ -90,6 +90,28 @@ def load_owned_event(event_id):
     return event
 
 
+def load_owned_commitment(commitment_id):
+    """Return the logged-in user's commitment, or abort with a 404.
+
+    As with goals and events, every commitment lookup is scoped by the session
+    user_id, so another user's commitment can never be read or changed by
+    guessing its id.
+    """
+    connection = get_db()
+
+    commitment = connection.execute(
+        "SELECT * FROM commitments WHERE id = ? AND user_id = ?",
+        (commitment_id, session["user_id"]),
+    ).fetchone()
+
+    connection.close()
+
+    if commitment is None:
+        abort(404)
+
+    return commitment
+
+
 def login_required(view):
     """Redirect anonymous users to the login page."""
 
@@ -135,6 +157,27 @@ def index():
             (session["user_id"], now),
         ).fetchall()
 
+        # Pending commitments are counted and listed for the current user only.
+        # Completed ones are excluded and commitments without a deadline sort
+        # last, exactly as the commitment page does.
+        pending_commitment_count = connection.execute(
+            """
+            SELECT COUNT(*) FROM commitments
+            WHERE user_id = ? AND status = 'pending'
+            """,
+            (session["user_id"],),
+        ).fetchone()[0]
+
+        next_commitments = connection.execute(
+            """
+            SELECT * FROM commitments
+            WHERE user_id = ? AND status = 'pending'
+            ORDER BY (deadline IS NULL), deadline, id
+            LIMIT 3
+            """,
+            (session["user_id"],),
+        ).fetchall()
+
         connection.close()
 
         return render_template(
@@ -142,6 +185,8 @@ def index():
             active_goals=active_goals,
             upcoming_event_count=upcoming_event_count,
             upcoming_events=upcoming_events,
+            pending_commitment_count=pending_commitment_count,
+            next_commitments=next_commitments,
         )
 
     return "EXECUTE is running."
@@ -766,6 +811,211 @@ def delete_event(event_id):
         abort(404)
 
     return redirect(url_for("events"))
+
+
+def validate_commitment_form(form):
+    """Validate a submitted commitment form.
+
+    Returns (values, errors). values holds the normalized column values, ready
+    to be passed to SQLite as parameters. The owner is deliberately not part of
+    the result: user_id always comes from the session, never from the form, so a
+    crafted user_id field cannot reassign a commitment. status, created_at and
+    completed_at are also left alone because they are changed by their own
+    routes.
+    """
+    title = form.get("title", "").strip()
+    description = form.get("description", "").strip()
+    committed_to = form.get("committed_to", "").strip()
+    deadline, deadline_is_valid = parse_datetime(form.get("deadline", ""))
+
+    errors = []
+
+    if not title:
+        errors.append("Title is required.")
+
+    if not deadline_is_valid:
+        errors.append("Deadline must be a valid date and time.")
+
+    values = {
+        "title": title,
+        "description": description or None,
+        "committed_to": committed_to or None,
+        "deadline": deadline,
+    }
+
+    return values, errors
+
+
+@app.route("/commitments")
+@login_required
+def commitments():
+    connection = get_db()
+
+    # Only the current user's commitments are ever returned. Pending ones come
+    # first, earliest deadline first, with undated commitments last; completed
+    # ones follow in the order they were finished.
+    rows = connection.execute(
+        """
+        SELECT * FROM commitments
+        WHERE user_id = ?
+        ORDER BY (status = 'completed'), (deadline IS NULL), deadline,
+            created_at, id
+        """,
+        (session["user_id"],),
+    ).fetchall()
+
+    connection.close()
+
+    pending_commitments = [row for row in rows if row["status"] != "completed"]
+    completed_commitments = [row for row in rows if row["status"] == "completed"]
+
+    return render_template(
+        "commitments.html",
+        pending_commitments=pending_commitments,
+        completed_commitments=completed_commitments,
+    )
+
+
+@app.route("/commitments/new", methods=["GET", "POST"])
+@login_required
+def new_commitment():
+    if request.method == "POST":
+        values, errors = validate_commitment_form(request.form)
+
+        if errors:
+            return render_template("commitment_form.html", errors=errors), 400
+
+        connection = get_db()
+
+        # user_id always comes from the session, never from the submitted form.
+        connection.execute(
+            """
+            INSERT INTO commitments (user_id, title, description, committed_to,
+                deadline)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                values["title"],
+                values["description"],
+                values["committed_to"],
+                values["deadline"],
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        return redirect(url_for("commitments"))
+
+    return render_template("commitment_form.html")
+
+
+@app.route("/commitments/<int:commitment_id>")
+@login_required
+def commitment_detail(commitment_id):
+    commitment = load_owned_commitment(commitment_id)
+
+    return render_template("commitment.html", commitment=commitment)
+
+
+@app.route("/commitments/<int:commitment_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_commitment(commitment_id):
+    commitment = load_owned_commitment(commitment_id)
+
+    if request.method == "POST":
+        values, errors = validate_commitment_form(request.form)
+
+        if errors:
+            return (
+                render_template(
+                    "commitment_form.html", errors=errors, commitment=commitment
+                ),
+                400,
+            )
+
+        connection = get_db()
+
+        # The update is scoped to the session user and never touches user_id,
+        # status, created_at or completed_at, so a commitment cannot be handed
+        # to another account or have its history rewritten.
+        connection.execute(
+            """
+            UPDATE commitments
+            SET title = ?, description = ?, committed_to = ?, deadline = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (
+                values["title"],
+                values["description"],
+                values["committed_to"],
+                values["deadline"],
+                commitment_id,
+                session["user_id"],
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        return redirect(url_for("commitment_detail", commitment_id=commitment_id))
+
+    return render_template("commitment_form.html", commitment=commitment)
+
+
+@app.route("/commitments/<int:commitment_id>/complete", methods=["POST"])
+@login_required
+def complete_commitment(commitment_id):
+    connection = get_db()
+
+    # Ownership check: the commitment must exist AND belong to the logged-in
+    # user, so another user's commitment can never be modified.
+    commitment = connection.execute(
+        "SELECT status FROM commitments WHERE id = ? AND user_id = ?",
+        (commitment_id, session["user_id"]),
+    ).fetchone()
+
+    if commitment is None:
+        connection.close()
+        abort(404)
+
+    # Only pending commitments are updated, so completed_at is never overwritten
+    # by a repeated submit of the same form.
+    if commitment["status"] != "completed":
+        connection.execute(
+            """
+            UPDATE commitments
+            SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+            """,
+            (commitment_id, session["user_id"]),
+        )
+        connection.commit()
+
+    connection.close()
+
+    return redirect(url_for("commitment_detail", commitment_id=commitment_id))
+
+
+@app.route("/commitments/<int:commitment_id>/delete", methods=["POST"])
+@login_required
+def delete_commitment(commitment_id):
+    connection = get_db()
+
+    # As with tasks, goals and events, the delete is scoped to the logged-in
+    # user, and the route only accepts POST so a link or a crawl cannot remove a
+    # commitment.
+    cursor = connection.execute(
+        "DELETE FROM commitments WHERE id = ? AND user_id = ?",
+        (commitment_id, session["user_id"]),
+    )
+    deleted = cursor.rowcount
+    connection.commit()
+    connection.close()
+
+    if deleted == 0:
+        abort(404)
+
+    return redirect(url_for("commitments"))
 
 
 if __name__ == "__main__":

@@ -76,6 +76,20 @@
                 </span>
                 <span class="action-card__cta">Open events</span>
             </a>
+
+            <a class="action-card" href="{{ url_for('commitments') }}">
+                <span class="action-card__label">Commitments</span>
+                <span class="action-card__text">
+                    {% if pending_commitment_count %}
+                        {{ pending_commitment_count }}
+                        pending commitment{% if pending_commitment_count != 1 %}s{% endif %}
+                        you have promised to others.
+                    {% else %}
+                        Track what you owe other people, separately from your tasks.
+                    {% endif %}
+                </span>
+                <span class="action-card__cta">Open commitments</span>
+            </a>
         </div>
     </section>
 
@@ -117,6 +131,54 @@
             <p class="empty-state">
                 Nothing scheduled yet.
                 <a href="{{ url_for('new_event') }}">Create an event</a>.
+            </p>
+        {% endif %}
+    </section>
+
+    <section class="section" aria-labelledby="commitment-summary-heading">
+        <div class="section__header">
+            <h2 id="commitment-summary-heading">Pending commitments</h2>
+            <span class="count">{{ pending_commitment_count }}</span>
+        </div>
+
+        {% if next_commitments %}
+            <ul class="commitment-list">
+                {% for commitment in next_commitments %}
+                    <li class="commitment">
+                        <div>
+                            <h3 class="commitment__title">
+                                <a href="{{ url_for('commitment_detail', commitment_id=commitment['id']) }}">
+                                    {{ commitment["title"] }}
+                                </a>
+                            </h3>
+                        </div>
+
+                        <ul class="commitment__meta">
+                            {% if commitment["committed_to"] %}
+                                <li>Committed to {{ commitment["committed_to"] }}</li>
+                            {% endif %}
+
+                            <li>
+                                {% if commitment["deadline"] %}
+                                    Deadline {{ commitment["deadline"] }}
+                                {% else %}
+                                    No deadline
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <p class="muted">
+                Showing the next {{ next_commitments|length }} of
+                {{ pending_commitment_count }}.
+                <a href="{{ url_for('commitments') }}">See all commitments</a>.
+            </p>
+        {% else %}
+            <p class="empty-state">
+                You have nothing pending.
+                <a href="{{ url_for('new_commitment') }}">Record a commitment</a>.
             </p>
         {% endif %}
     </section>

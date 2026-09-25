@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. It is shared by "create commitment" and
+   "edit commitment". #}
+
+{% set editing = commitment is defined and commitment %}
+
+{% if editing %}
+    {% set form_action = url_for('edit_commitment', commitment_id=commitment['id']) %}
+    {% set cancel_url = url_for('commitment_detail', commitment_id=commitment['id']) %}
+    {% set current_title = request.form.get('title', commitment['title']) %}
+    {% set current_description = request.form.get('description', commitment['description'] or '') %}
+    {% set current_committed_to = request.form.get('committed_to', commitment['committed_to'] or '') %}
+    {# Stored timestamps read "YYYY-MM-DD HH:MM:SS"; a datetime-local input wants
+       "YYYY-MM-DDTHH:MM", so the space becomes a T and the seconds are dropped. #}
+    {% set current_deadline = request.form.get('deadline', (commitment['deadline'] or '')[:16]|replace(' ', 'T')) %}
+{% else %}
+    {% set form_action = url_for('new_commitment') %}
+    {% set cancel_url = url_for('commitments') %}
+    {% set current_title = request.form.get('title', '') %}
+    {% set current_description = request.form.get('description', '') %}
+    {% set current_committed_to = request.form.get('committed_to', '') %}
+    {% set current_deadline = request.form.get('deadline', '') %}
+{% endif %}
+
+{% block title %}{% if editing %}Edit commitment{% else %}New Commitment{% endif %} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">{% if editing %}Edit commitment{% else %}New commitment{% endif %}</p>
+            <h1>{% if editing %}Edit commitment{% else %}Create a commitment{% endif %}</h1>
+            <p class="page-subtitle">
+                {% if editing %}
+                    Update what you promised, to whom and by when.
+                {% else %}
+                    Write down what you owe someone, so it does not quietly slip.
+                {% endif %}
+            </p>
+        </div>
+    </header>
+
+    {% if errors %}
+        <div class="alert alert--error" role="alert">
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form class="form" method="POST" action="{{ form_action }}">
+        <div class="field">
+            <label for="title">Title</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                value="{{ current_title }}"
+                placeholder="e.g. Send the internship application"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="description">
+                Description <span class="field__hint">optional</span>
+            </label>
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+                placeholder="What exactly have you promised, and what does done look like?"
+            >{{ current_description }}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="committed_to">
+                Committed to <span class="field__hint">optional</span>
+            </label>
+            <input
+                type="text"
+                id="committed_to"
+                name="committed_to"
+                value="{{ current_committed_to }}"
+                placeholder="e.g. Rahul, or the DBMS course team"
+            >
+            <p class="field__hint">The person or group you made this promise to.</p>
+        </div>
+
+        <div class="field">
+            <label for="deadline">
+                Deadline <span class="field__hint">optional</span>
+            </label>
+            <input
+                type="datetime-local"
+                id="deadline"
+                name="deadline"
+                value="{{ current_deadline }}"
+            >
+            <p class="field__hint">The date and time you have promised this by.</p>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">
+                {% if editing %}Save changes{% else %}Create commitment{% endif %}
+            </button>
+            <a class="btn btn--ghost" href="{{ cancel_url }}">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

@@ -44,6 +44,12 @@
                     >Events</a>
 
                     <a
+                        class="nav-link"
+                        href="{{ url_for('commitments') }}"
+                        {% if request.endpoint in ["commitments", "commitment_detail", "new_commitment", "edit_commitment"] %}aria-current="page"{% endif %}
+                    >Commitments</a>
+
+                    <a
                         class="nav-link nav-link--accent"
                         href="{{ url_for('new_task') }}"
                         {% if request.endpoint == "new_task" %}aria-current="page"{% endif %}

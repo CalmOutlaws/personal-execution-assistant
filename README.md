@@ -4,8 +4,9 @@
 
 EXECUTE is a personal execution assistant written in Python with Flask and
 SQLite. It is an early-stage project developed as a CS50x 2026 final project.
-The current version covers user accounts, tasks, goals and events; the larger
-ideas described under [What's Next](#whats-next) are not implemented yet.
+The current version covers user accounts, tasks, goals, events and commitments;
+the larger ideas described under [What's Next](#whats-next) are not implemented
+yet.
 
 ## Project Description
 
@@ -23,11 +24,11 @@ Interpreting free-form, natural-language input is part of that goal.
 
 The project is deliberately built up in small, verifiable milestones. What
 exists today is the foundation: an account, tasks with priorities and optional
-due dates, goals that group related tasks together, and events that block out
-time in the calendar. Natural-language input, reminders and commitment handling
-are design goals for later milestones, not finished features. Nothing in this
-document should be read as a claim that the application is complete or
-production-ready.
+due dates, goals that group related tasks together, events that block out
+time in the calendar, and commitments tracked separately from personal tasks.
+Natural-language input, reminders and notification behaviour are design goals
+for later milestones, not finished features. Nothing in this document should be
+read as a claim that the application is complete or production-ready.
 
 ## Current Features
 
@@ -71,17 +72,32 @@ production-ready.
 - Edit an event's title, description, start, end and location.
 - Delete an event.
 
+**Commitments**
+
+- Create a commitment with a title, an optional description, an optional
+  deadline, and the person the promise was made to.
+- List commitments, split into pending and completed, with pending work first
+  and then ordered by deadline.
+- Open a commitment detail page showing what was promised, to whom, and when.
+- Edit a commitment's title, description, deadline and the person it was made
+  to. Editing never changes the owner, the status or the completion timestamp.
+- Mark a commitment as complete, recording when it was completed.
+- Delete a commitment.
+- The dashboard shows how many commitments are still pending and lists the
+  next ones by deadline, so promises to other people stay visible separately
+  from your own tasks.
+
 **Data isolation and security**
 
-- Every task, goal and event belongs to the user who created it.
+- Every task, goal, event and commitment belongs to the user who created it.
 - All reads and writes are scoped to the logged-in user, so another user's task,
-  goal or event cannot be listed, opened, edited, completed or deleted;
-  requests for data that is not yours return a 404.
+  goal, event or commitment cannot be listed, opened, edited, completed or
+  deleted; requests for data that is not yours return a 404.
 - A task can only be linked to a goal that the same user owns and that is still
   active.
-- All database access uses parameterised SQL queries, and the task, goal or
-  event owner is always taken from the session rather than from submitted form
-  data.
+- All database access uses parameterised SQL queries, and the task, goal,
+  event or commitment owner is always taken from the session rather than from
+  submitted form data.
 
 **Interface**
 
@@ -117,6 +133,7 @@ project/
 ├── database.py             # SQLite helpers: connection handling and schema setup
 ├── requirements.txt        # Pinned Python dependencies
 ├── test_events.py          # Automated checks for the event routes and ownership rules
+├── test_commitments.py     # Automated checks for the commitment routes and ownership rules
 ├── .env                    # Local SECRET_KEY (ignored by git, not committed)
 ├── execute.db              # SQLite database file (ignored by git, created on first run)
 ├── templates/
@@ -133,7 +150,11 @@ project/
 │   ├── events.html         # Event list, split into upcoming and past
 │   ├── event.html          # Event detail page
 │   ├── event_form.html     # Create/edit event form
-│   └── event_card.html     # Partial rendering a single event, used by the event list
+│   ├── event_card.html     # Partial rendering a single event, used by the event list
+│   ├── commitments.html    # Commitment list, split into pending and completed
+│   ├── commitment.html     # Commitment detail page
+│   ├── commitment_form.html # Create/edit commitment form
+│   └── commitment_card.html # Partial rendering a single commitment
 └── static/
     └── style.css           # The single dark, responsive stylesheet
 ```
@@ -145,9 +166,9 @@ routes pass to them.
 ## How It Works
 
 - **Flask handles the web application.** `app.py` defines the routes for the
-  dashboard, accounts, tasks, goals and events. Each route reads the request,
-  validates the submitted form fields, runs the required queries and either
-  redirects or renders a Jinja template.
+  dashboard, accounts, tasks, goals, events and commitments. Each route reads
+  the request, validates the submitted form fields, runs the required queries
+  and either redirects or renders a Jinja template.
 - **SQLite stores the data.** All state lives in a single SQLite file,
   `execute.db`. `database.py` opens a connection per request with a `sqlite3.Row`
   row factory so that columns can be read by name, and enables foreign key
@@ -178,10 +199,12 @@ routes pass to them.
 - **The application uses direct SQLite queries rather than an ORM.** Statements
   are written by hand with `?` placeholders, which keeps the SQL visible and
   avoids an extra layer of abstraction at this size.
-- The event pages use the existing `events` table, which needed no change: it
-  already had the title, description, start, end, location and owner columns the
-  feature requires. The `commitments` table is still reserved for a later
-  milestone, and no route or template uses it yet.
+- The event and commitment pages use the existing `events` and `commitments`
+  tables, which needed no schema change: they already had the title,
+  description, owner, status and date columns each feature requires.
+- **Completion is idempotent.** Marking a task, goal or commitment complete only
+  writes `status` and `completed_at` while the row is still pending, so
+  submitting the action twice cannot overwrite the original completion time.
 
 ## Running Locally
 
@@ -199,11 +222,8 @@ default local address.
 
 ## What's Next
 
-The following are planned for later milestones. None of them is implemented, and
-the commitments table mentioned above is currently unused.
+The following are planned for later milestones. None of them is implemented yet.
 
-- **Commitments** - things owed to other people, tracked separately from
-  personal tasks.
 - **A stronger execution-focused dashboard** - a summary of what needs attention
   today rather than a list of everything.
 - **Natural-language interpretation** - turning free-form input such as "finish
