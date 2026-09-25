@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this detail template was created with AI assistance and reviewed by the author. #}
+{% block title %}{{ task['title'] }} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Task</p>
+            <h1>{{ task['title'] }}</h1>
+        </div>
+        <a class="btn btn--ghost" href="{{ url_for('tasks') }}">Back to tasks</a>
+    </header>
+
+    <section class="card">
+        {% if task['description'] %}<p>{{ task['description'] }}</p>{% endif %}
+        <dl class="meta-list">
+            <div class="meta-list__item"><dt>Status</dt><dd>{{ task['status']|capitalize }}</dd></div>
+            <div class="meta-list__item"><dt>Priority</dt><dd>{{ task['priority']|capitalize }}</dd></div>
+            {% if task['due_at'] %}<div class="meta-list__item"><dt>Due</dt><dd>{{ task['due_at'] }}</dd></div>{% endif %}
+        </dl>
+    </section>
+{% endblock %}

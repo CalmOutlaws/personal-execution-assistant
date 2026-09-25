@@ -3,6 +3,16 @@ from datetime import datetime
 from functools import wraps
 
 from dotenv import load_dotenv
+from flask import (
+    Flask,
+    abort,
+    flash,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+)
 from flask import Flask, abort, render_template, request, redirect, url_for, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -11,8 +21,9 @@ from parser import parse_input
 
 # AI disclosure (CS50 final project requirement): this project was written with
 # the help of an AI coding assistant. AI assistance was used for the task, goal,
-# event and commitment management routes below, for the templates in templates/
-# and for static/style.css; every change was reviewed and tested by the author.
+# event, commitment, natural-language Quick Add confirmation, and associated
+# templates were created with AI assistance; every change was reviewed and
+# tested by the author.
 
 load_dotenv()
 
@@ -272,44 +283,81 @@ def _format_interpretation_time(value):
         return value
 
 
+def _quick_add_text(value, limit=1000):
+    """Return safely bounded display text from a signed-session preview."""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()[:limit]
 
+
+def _validated_quick_add_preview(interpretation):
+    """Validate a session preview before writing; the session is untrusted."""
+    if not isinstance(interpretation, dict):
+        return None, ["The Quick Add preview is missing or invalid. Please try again."]
+
+    item_type = interpretation.get("type")
+    if item_type not in ("task", "event", "commitment", "goal"):
+        return None, ["The Quick Add interpretation is not supported."]
+
+    title = _quick_add_text(interpretation.get("title"), 200)
+    if not title:
+        return None, ["The Quick Add interpretation is missing a title."]
+
+    values = {
+        "title": title,
+        "description": _quick_add_text(interpretation.get("description")),
+        "location": _quick_add_text(interpretation.get("location"), 200),
+        "committed_to": _quick_add_text(interpretation.get("committed_to"), 200),
+    }
+    errors = []
+    optional_fields = {
+        "task": ("due_at",), "event": ("ends_at",),
+        "commitment": ("deadline",), "goal": ("deadline",),
+    }
+    for field in optional_fields[item_type]:
+        timestamp, valid = parse_datetime(interpretation.get(field))
+        if not valid:
+            errors.append(f"The interpreted {field.replace('_', ' ')} is invalid.")
+        values[field] = timestamp
+
+    if item_type == "event":
+        starts_at, valid = parse_datetime(interpretation.get("starts_at"))
+        if not valid or starts_at is None:
+            errors.append("The interpreted event start date and time is required.")
+        values["starts_at"] = starts_at
+        if values["ends_at"] and starts_at and values["ends_at"] < starts_at:
+            errors.append("The interpreted event must not end before it starts.")
+
+    if errors:
+        return None, errors
+    return {"type": item_type, "values": values}, []
+
+
+def _clear_quick_add_preview():
+    session.pop("quick_add_interpretation", None)
+    session.pop("quick_add_original_text", None)
 
 
 @app.route("/quick-add", methods=["GET", "POST"])
 @login_required
 def quick_add():
-    """Interpret a sentence and show a confirmation preview without persisting it.
-
-    The parsed result is kept in the signed Flask session only as display state.
-    It is not trusted as an ownership or creation record; a later milestone can
-    replace it with a server-side confirmation flow.
-    """
+    """Interpret a sentence and show a confirmation preview without persisting it."""
     if request.method == "GET":
-        session.pop("quick_add_interpretation", None)
+        _clear_quick_add_preview()
         return render_template("quick_add.html", text="", interpretation=None)
 
     text = request.form.get("text", "").strip()
     if not text:
-        return (
-            render_template(
-                "quick_add.html",
-                text="",
-                interpretation=None,
-                error="Please enter what you want to add.",
-            ),
-            400,
-        )
+        return render_template(
+            "quick_add.html", text="", interpretation=None,
+            error="Please enter what you want to add.",
+        ), 400
 
     interpretation = parse_input(text)
     if interpretation.get("type") == "unknown":
-        return (
-            render_template(
-                "quick_add.html",
-                text=text,
-                interpretation=interpretation,
-                error=interpretation.get("error"),
-            ),
-            200,
+        return render_template(
+            "quick_add.html", text=text, interpretation=interpretation,
+            error=interpretation.get("error"),
         )
 
     interpretation["display_when"] = _format_interpretation_time(
@@ -317,12 +365,90 @@ def quick_add():
         or interpretation.get("deadline")
     )
     session["quick_add_interpretation"] = interpretation
+    session["quick_add_original_text"] = text
     return render_template(
         "quick_add_confirmation.html", text=text, interpretation=interpretation
     )
 
-    return redirect(url_for("login"))
 
+@app.route("/quick-add/confirm", methods=["POST"])
+@login_required
+def confirm_quick_add():
+    """Persist one revalidated Quick Add preview for the current session user."""
+    original_text = _quick_add_text(session.get("quick_add_original_text"))
+    raw_interpretation = session.get("quick_add_interpretation")
+    interpretation, errors = _validated_quick_add_preview(raw_interpretation)
+    if errors:
+        display = raw_interpretation if isinstance(raw_interpretation, dict) else {
+            "type": "unknown", "title": original_text
+        }
+        return render_template(
+            "quick_add_confirmation.html", text=original_text,
+            interpretation=display, error=errors[0],
+        ), 400
+
+    item_type = interpretation["type"]
+    values = interpretation["values"]
+    user_id = session["user_id"]
+    connection = get_db()
+    try:
+        if item_type == "task":
+            cursor = connection.execute(
+                "INSERT INTO tasks (user_id, title, description, due_at, priority, status) "
+                "VALUES (?, ?, ?, ?, 'medium', 'pending')",
+                (user_id, values["title"], values["description"], values["due_at"]),
+            )
+            endpoint, label = "task_detail", "Task"
+        elif item_type == "event":
+            cursor = connection.execute(
+                "INSERT INTO events (user_id, title, description, starts_at, ends_at, location) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, values["title"], values["description"], values["starts_at"],
+                 values["ends_at"], values["location"]),
+            )
+            endpoint, label = "event_detail", "Event"
+        elif item_type == "commitment":
+            cursor = connection.execute(
+                "INSERT INTO commitments (user_id, title, description, committed_to, deadline, status) "
+                "VALUES (?, ?, ?, ?, ?, 'pending')",
+                (user_id, values["title"], values["description"],
+                 values["committed_to"], values["deadline"]),
+            )
+            endpoint, label = "commitment_detail", "Commitment"
+        else:
+            cursor = connection.execute(
+                "INSERT INTO goals (user_id, title, description, deadline, status) "
+                "VALUES (?, ?, ?, ?, 'active')",
+                (user_id, values["title"], values["description"], values["deadline"]),
+            )
+            endpoint, label = "goal_detail", "Goal"
+        item_id = cursor.lastrowid
+        connection.commit()
+    finally:
+        connection.close()
+
+    _clear_quick_add_preview()
+    flash(f"{label} created successfully.")
+    return redirect(url_for(endpoint, **{f"{item_type}_id": item_id}))
+
+
+
+
+@app.route("/tasks/<int:task_id>")
+@login_required
+def task_detail(task_id):
+    """Return one owned task for the Quick Add success redirect."""
+    connection = get_db()
+    task = connection.execute(
+        "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
+        (task_id, session["user_id"]),
+    ).fetchone()
+    connection.close()
+
+    if task is None:
+        abort(404)
+
+    return render_template("task_detail.html", task=task)
 
 @app.route("/tasks")
 @login_required

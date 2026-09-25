@@ -22,7 +22,9 @@
             {% if interpretation.get('location') %}<div><dt>Location</dt><dd>{{ interpretation['location'] }}</dd></div>{% endif %}
         </dl>
         <div class="form-actions">
-            <button class="btn btn--primary" type="button" disabled>Confirm (coming next)</button>
+            <form method="POST" action="{{ url_for('confirm_quick_add') }}">
+                <button class="btn btn--primary" type="submit">Confirm and create</button>
+            </form>
             <a class="btn btn--ghost" href="{{ url_for('quick_add') }}">Edit</a>
         </div>
     </section>
