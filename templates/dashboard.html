@@ -9,20 +9,70 @@
             <h1>Welcome back, {{ session["username"] }}</h1>
             <p class="page-subtitle">Turn intentions into actions.</p>
         </div>
+
+        <div class="page-header__actions">
+            <a class="btn btn--primary" href="{{ url_for('quick_add') }}">Quick Add</a>
+            <a class="btn btn--ghost" href="{{ url_for('search') }}">Search</a>
+        </div>
     </header>
+
+    {# AI disclosure: dashboard hierarchy polish added with AI assistance; existing style reused. #}
+    {% if overdue_tasks or overdue_commitments %}
+        <section class="section" aria-labelledby="attention-heading">
+            <div class="section__header">
+                <h2 id="attention-heading">Needs attention now</h2>
+            </div>
+            <ul class="task-list">
+                {% for task in overdue_tasks %}
+                    <li class="task notify-item" data-when="{{ task['due_at'] }}" data-notify-key="task-{{ task['id'] }}" data-notify-title="{{ task['title'] }}" data-notify-kind="overdue">
+                        <div><h3 class="task__title"><a href="{{ url_for('task_detail', task_id=task['id']) }}">{{ task["title"] }}</a></h3></div>
+                        <ul class="task__meta"><li>Overdue &middot; Due {{ task["due_at"] }}</li></ul>
+                    </li>
+                {% endfor %}
+                {% for commitment in overdue_commitments %}
+                    <li class="commitment notify-item" data-when="{{ commitment['deadline'] }}" data-notify-key="overdue-commitment-{{ commitment['id'] }}" data-notify-title="{{ commitment['title'] }}" data-notify-kind="overdue">
+                        <div><h3 class="commitment__title"><a href="{{ url_for('commitment_detail', commitment_id=commitment['id']) }}">{{ commitment["title"] }}</a></h3></div>
+                        <ul class="commitment__meta"><li>Overdue{% if commitment["deadline"] %} &middot; Deadline {{ commitment["deadline"] }}{% endif %}</li></ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if due_soon_tasks or upcoming_events %}
+        <section class="section" aria-labelledby="next-heading">
+            <div class="section__header">
+                <h2 id="next-heading">Coming next</h2>
+            </div>
+            <ul class="task-list">
+                {% for task in due_soon_tasks %}
+                    <li class="task notify-item" data-when="{{ task['due_at'] }}" data-notify-key="task-{{ task['id'] }}" data-notify-title="{{ task['title'] }}" data-notify-kind="task">
+                        <div><h3 class="task__title"><a href="{{ url_for('task_detail', task_id=task['id']) }}">{{ task["title"] }}</a></h3></div>
+                        <ul class="task__meta"><li>Due {{ task["due_at"] }}</li></ul>
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if upcoming_events %}
+                <ul class="event-list">
+                    {% for event in upcoming_events %}
+                        {% set upcoming = True %}
+                        {% include "event_card.html" %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    {% endif %}
 
     <section class="section" aria-labelledby="how-heading">
         <div class="card">
             <h2 id="how-heading">How EXECUTE works</h2>
             <p class="muted">
-                EXECUTE is a personal execution assistant. You write down what you
-                intend to do, give it a due date and a priority, and then work
-                through the list one action at a time.
+                Start with Quick Add, review what EXECUTE understood, then confirm.
+                Nothing is saved until you confirm it.
             </p>
             <p class="muted">
-                Goals group related tasks under one outcome you are working
-                towards. Commitments and progress analytics will be added in
-                later milestones and will appear on this dashboard.
+                Work overdue items first, then what is coming next. Goals and
+                commitments collect the longer-term work.
             </p>
         </div>
     </section>

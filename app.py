@@ -23,7 +23,8 @@ from parser import parse_input
 
 # AI disclosure (CS50 final project requirement): this project was written with
 # the help of an AI coding assistant. AI assistance was used for the task, goal,
-# event, commitment, natural-language Quick Add confirmation, and associated
+# event, commitment, natural-language Quick Add confirmation, goal breakdown,
+# recurring tasks, browser notifications, search/filtering, and associated
 # templates were created with AI assistance; every change was reviewed and
 # tested by the author.
 
@@ -204,6 +205,39 @@ def index():
             (session["user_id"],),
         ).fetchall()
 
+        overdue_tasks = connection.execute(
+            """
+            SELECT id, title, due_at FROM tasks
+            WHERE user_id = ? AND status != 'completed'
+                AND due_at IS NOT NULL AND due_at < ?
+            ORDER BY due_at, id
+            LIMIT 5
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
+        overdue_commitments = connection.execute(
+            """
+            SELECT id, title, deadline FROM commitments
+            WHERE user_id = ? AND status = 'pending'
+                AND deadline IS NOT NULL AND deadline < ?
+            ORDER BY deadline, id
+            LIMIT 5
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
+        due_soon_tasks = connection.execute(
+            """
+            SELECT id, title, due_at FROM tasks
+            WHERE user_id = ? AND status != 'completed'
+                AND due_at IS NOT NULL AND due_at >= ?
+            ORDER BY due_at, id
+            LIMIT 5
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
         # Notification candidates for the client-side V1 poller: upcoming
         # pending tasks, upcoming events, and overdue pending items. Rendered
         # as data attributes so plain HTML works without JS too.
@@ -258,6 +292,9 @@ def index():
             upcoming_events=upcoming_events,
             pending_commitment_count=pending_commitment_count,
             next_commitments=next_commitments,
+            overdue_tasks=overdue_tasks,
+            overdue_commitments=overdue_commitments,
+            due_soon_tasks=due_soon_tasks,
             notify_tasks=notify_tasks,
             notify_events=notify_events,
             notify_overdue_tasks=notify_overdue_tasks,
@@ -572,36 +609,144 @@ def task_detail(task_id):
 
     return render_template("task_detail.html", task=task)
 
+def _search_like(value):
+    """Return a bounded LIKE pattern; empty input matches nothing useful."""
+    text = (value or "").strip()
+    if not text:
+        return ""
+    if len(text) > 200:
+        text = text[:200]
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return "%" + escaped + "%"
+
+
+@app.route("/search")
+@login_required
+def search():
+    """Search the current user's tasks, goals, events, and commitments."""
+    query = (request.args.get("q", "") or "").strip()[:200]
+    pattern = _search_like(query)
+    task_results, goal_results, event_results, commitment_results = [], [], [], []
+
+    if pattern:
+        connection = get_db()
+        task_results = connection.execute(
+            """
+            SELECT id, title, description, due_at, status, priority
+            FROM tasks
+            WHERE user_id = ?
+                AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
+            ORDER BY id DESC
+            LIMIT 25
+            """,
+            (session["user_id"], pattern, pattern),
+        ).fetchall()
+        goal_results = connection.execute(
+            """
+            SELECT id, title, description, deadline, status
+            FROM goals
+            WHERE user_id = ?
+                AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
+            ORDER BY id DESC
+            LIMIT 25
+            """,
+            (session["user_id"], pattern, pattern),
+        ).fetchall()
+        event_results = connection.execute(
+            """
+            SELECT id, title, description, location, starts_at
+            FROM events
+            WHERE user_id = ?
+                AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
+                     OR location LIKE ? ESCAPE '\\')
+            ORDER BY id DESC
+            LIMIT 25
+            """,
+            (session["user_id"], pattern, pattern, pattern),
+        ).fetchall()
+        commitment_results = connection.execute(
+            """
+            SELECT id, title, description, committed_to, deadline, status
+            FROM commitments
+            WHERE user_id = ?
+                AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
+                     OR committed_to LIKE ? ESCAPE '\\')
+            ORDER BY id DESC
+            LIMIT 25
+            """,
+            (session["user_id"], pattern, pattern, pattern),
+        ).fetchall()
+        connection.close()
+
+    return render_template(
+        "search.html",
+        query=query,
+        task_results=task_results,
+        goal_results=goal_results,
+        event_results=event_results,
+        commitment_results=commitment_results,
+        searched=bool(pattern),
+    )
+
+
 @app.route("/tasks")
 @login_required
 def tasks():
+    # Lightweight GET filters; invalid values are safely ignored so the
+    # default list behavior is unchanged.
+    status_filter = (request.args.get("status", "") or "").strip().lower()
+    if status_filter not in ("", "all", "pending", "completed"):
+        status_filter = ""
+    priority_filter = (request.args.get("priority", "") or "").strip().lower()
+    if priority_filter not in ("", "all") and priority_filter not in PRIORITIES:
+        priority_filter = ""
+    recurring_filter = (request.args.get("recurring", "") or "").strip()
+    recurring_only = recurring_filter in ("1", "true", "yes", "only")
+
     connection = get_db()
 
     # The current user's tasks, pending ones first, then by due date and id.
     # The join is scoped to the same user, so a task can only ever display a
     # goal that its owner actually owns.
-    rows = connection.execute(
-        """
+    query = """
         SELECT tasks.*, goals.title AS goal_title
         FROM tasks
         LEFT JOIN goals
             ON goals.id = tasks.goal_id AND goals.user_id = tasks.user_id
         WHERE tasks.user_id = ?
+    """
+    params = [session["user_id"]]
+    if status_filter in ("pending", "completed"):
+        if status_filter == "pending":
+            query += " AND tasks.status != 'completed'"
+        else:
+            query += " AND tasks.status = 'completed'"
+    if priority_filter in PRIORITIES:
+        query += " AND tasks.priority = ?"
+        params.append(priority_filter)
+    if recurring_only:
+        query += " AND tasks.recurrence IS NOT NULL AND tasks.recurrence != ''"
+    query += """
         ORDER BY (tasks.status = 'completed'), (tasks.due_at IS NULL),
             tasks.due_at, tasks.id
-        """,
-        (session["user_id"],),
-    ).fetchall()
+    """
+    rows = connection.execute(query, params).fetchall()
 
     connection.close()
 
     pending_tasks = [task for task in rows if task["status"] != "completed"]
     completed_tasks = [task for task in rows if task["status"] == "completed"]
+    filters = {
+        "status": status_filter or "all",
+        "priority": priority_filter or "all",
+        "recurring": "1" if recurring_only else "",
+    }
 
     return render_template(
         "tasks.html",
         pending_tasks=pending_tasks,
         completed_tasks=completed_tasks,
+        filters=filters,
     )
 
 
