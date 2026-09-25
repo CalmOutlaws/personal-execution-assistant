@@ -43,8 +43,10 @@ production-ready.
   by checking the submitted password against the stored hash.
 - Session-based authentication. Every page that shows or changes user data
   requires a login, and anonymous requests for those pages are redirected to the
-  login form. Only the home page, registration and login are reachable without a
-  session, and the home page shows a short placeholder message in that case.
+  login form. Only the home page (the root URL), registration and login are
+  reachable without a session.
+- The root URL (`/`) serves a public landing page to signed-out visitors, and
+  redirects users who are already signed in to the dashboard.
 
 **Tasks**
 
@@ -151,7 +153,8 @@ production-ready.
 
 **Dashboard**
 
-- The dashboard is the page shown after logging in. It opens with "Needs
+- The dashboard lives at `/dashboard`, which is both the page shown after logging
+  in and the target of the redirect from the root URL. It opens with "Needs
   attention now" (overdue tasks and commitments) and "Coming next" (work that is
   due soon), then explains how EXECUTE works and offers shortcut links to tasks,
   goals, events and commitments, each of which shows the current count.
@@ -239,13 +242,15 @@ project/
 ├── test_parser.py             # Automated checks for the parser, Quick Add and goal breakdown
 ├── test_recurrence.py         # Automated checks for recurrence and the notification script
 ├── test_search.py             # Automated checks for search and the task filters
+├── test_home.py               # Automated checks for the landing page and the root redirect
 ├── .env                       # Local SECRET_KEY (ignored by git, not committed)
 ├── execute.db                 # SQLite database file (ignored by git, created on first run)
 ├── templates/
 │   ├── layout.html            # Base layout: header, navigation, flash messages, footer
+│   ├── home.html              # Public landing page shown to signed-out visitors
 │   ├── register.html          # Registration form
 │   ├── login.html             # Login form
-│   ├── dashboard.html         # Landing page shown after logging in, with the reminders panel
+│   ├── dashboard.html         # Page shown after logging in, with the reminders panel
 │   ├── quick_add.html         # Quick Add sentence form, including the optional voice button
 │   ├── quick_add_confirmation.html # The interpreted sentence, reviewed before it is saved
 │   ├── tasks.html             # Task list with the status, priority and recurring filters
@@ -281,9 +286,9 @@ behaviour reproducible and easy to test on its own.
 ## How It Works
 
 - **Flask handles the web application.** `app.py` defines the routes for the
-  dashboard, accounts, tasks, goals, events, commitments, Quick Add, goal
-  breakdown, search and logout. Each route reads the request, validates the
-  submitted form fields, runs the required queries and either redirects or
+  landing page, dashboard, accounts, tasks, goals, events, commitments, Quick
+  Add, goal breakdown, search and logout. Each route reads the request, validates
+  the submitted form fields, runs the required queries and either redirects or
   renders a Jinja template.
 - **SQLite stores the data.** All state lives in a single SQLite file,
   `execute.db`. `database.py` opens a connection per request with a `sqlite3.Row`
@@ -294,8 +299,9 @@ behaviour reproducible and easy to test on its own.
   username into the session; logging out clears it. The `SECRET_KEY` used to
   sign the session cookie is read from a local `.env` file through
   python-dotenv. A `login_required` decorator protects every page that shows or
-  changes user data; only the home page, registration and login are reachable
-  without a session.
+  changes user data; only the root URL, registration and login are reachable
+  without a session. The root URL renders the public landing page for signed-out
+  visitors and redirects signed-in users to the dashboard route.
 - **Passwords are stored as hashes.** Registration hashes the password with
   Werkzeug's `generate_password_hash` and stores only the hash. Login compares
   the submitted password against that hash with `check_password_hash`, so the

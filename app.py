@@ -151,154 +151,167 @@ def login_required(view):
 
 @app.route("/")
 def index():
+    # AI disclosure: the public landing page for signed-out visitors and the
+    # redirect to the dashboard route below were added with AI assistance and
+    # reviewed by the author.
     if "user_id" in session:
-        connection = get_db()
+        return redirect(url_for("dashboard"))
 
-        # Small dashboard summary: how many goals are still active and what is
-        # coming up next. The full analytics dashboard belongs to a later
-        # milestone.
-        active_goals = connection.execute(
-            "SELECT COUNT(*) FROM goals WHERE user_id = ? AND status = 'active'",
-            (session["user_id"],),
-        ).fetchone()[0]
+    return render_template("home.html")
 
-        now = now_timestamp()
 
-        # Upcoming events are counted and listed for the current user only. The
-        # list is capped because this is a summary, not the events page.
-        upcoming_event_count = connection.execute(
-            "SELECT COUNT(*) FROM events WHERE user_id = ? AND starts_at >= ?",
-            (session["user_id"], now),
-        ).fetchone()[0]
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    # The dashboard queries below are the code that "/" used to render for
+    # signed-in users. The queries, limits and template arguments are
+    # unchanged; they live here so that "/" can serve the public landing page
+    # and send signed-in visitors to this route.
+    connection = get_db()
 
-        upcoming_events = connection.execute(
-            """
-            SELECT * FROM events
-            WHERE user_id = ? AND starts_at >= ?
-            ORDER BY starts_at, id
-            LIMIT 3
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    # Small dashboard summary: how many goals are still active and what is
+    # coming up next. The full analytics dashboard belongs to a later
+    # milestone.
+    active_goals = connection.execute(
+        "SELECT COUNT(*) FROM goals WHERE user_id = ? AND status = 'active'",
+        (session["user_id"],),
+    ).fetchone()[0]
 
-        # Pending commitments are counted and listed for the current user only.
-        # Completed ones are excluded and commitments without a deadline sort
-        # last, exactly as the commitment page does.
-        pending_commitment_count = connection.execute(
-            """
-            SELECT COUNT(*) FROM commitments
-            WHERE user_id = ? AND status = 'pending'
-            """,
-            (session["user_id"],),
-        ).fetchone()[0]
+    now = now_timestamp()
 
-        next_commitments = connection.execute(
-            """
-            SELECT * FROM commitments
-            WHERE user_id = ? AND status = 'pending'
-            ORDER BY (deadline IS NULL), deadline, id
-            LIMIT 3
-            """,
-            (session["user_id"],),
-        ).fetchall()
+    # Upcoming events are counted and listed for the current user only. The
+    # list is capped because this is a summary, not the events page.
+    upcoming_event_count = connection.execute(
+        "SELECT COUNT(*) FROM events WHERE user_id = ? AND starts_at >= ?",
+        (session["user_id"], now),
+    ).fetchone()[0]
 
-        overdue_tasks = connection.execute(
-            """
-            SELECT id, title, due_at FROM tasks
-            WHERE user_id = ? AND status != 'completed'
-                AND due_at IS NOT NULL AND due_at < ?
-            ORDER BY due_at, id
-            LIMIT 5
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    upcoming_events = connection.execute(
+        """
+        SELECT * FROM events
+        WHERE user_id = ? AND starts_at >= ?
+        ORDER BY starts_at, id
+        LIMIT 3
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-        overdue_commitments = connection.execute(
-            """
-            SELECT id, title, deadline FROM commitments
-            WHERE user_id = ? AND status = 'pending'
-                AND deadline IS NOT NULL AND deadline < ?
-            ORDER BY deadline, id
-            LIMIT 5
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    # Pending commitments are counted and listed for the current user only.
+    # Completed ones are excluded and commitments without a deadline sort
+    # last, exactly as the commitment page does.
+    pending_commitment_count = connection.execute(
+        """
+        SELECT COUNT(*) FROM commitments
+        WHERE user_id = ? AND status = 'pending'
+        """,
+        (session["user_id"],),
+    ).fetchone()[0]
 
-        due_soon_tasks = connection.execute(
-            """
-            SELECT id, title, due_at FROM tasks
-            WHERE user_id = ? AND status != 'completed'
-                AND due_at IS NOT NULL AND due_at >= ?
-            ORDER BY due_at, id
-            LIMIT 5
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    next_commitments = connection.execute(
+        """
+        SELECT * FROM commitments
+        WHERE user_id = ? AND status = 'pending'
+        ORDER BY (deadline IS NULL), deadline, id
+        LIMIT 3
+        """,
+        (session["user_id"],),
+    ).fetchall()
 
-        # Notification candidates for the client-side V1 poller: upcoming
-        # pending tasks, upcoming events, and overdue pending items. Rendered
-        # as data attributes so plain HTML works without JS too.
-        notify_tasks = connection.execute(
-            """
-            SELECT id, title, due_at FROM tasks
-            WHERE user_id = ? AND status = 'pending' AND due_at IS NOT NULL
-            ORDER BY due_at, id
-            LIMIT 10
-            """,
-            (session["user_id"],),
-        ).fetchall()
+    overdue_tasks = connection.execute(
+        """
+        SELECT id, title, due_at FROM tasks
+        WHERE user_id = ? AND status != 'completed'
+            AND due_at IS NOT NULL AND due_at < ?
+        ORDER BY due_at, id
+        LIMIT 5
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-        notify_events = connection.execute(
-            """
-            SELECT id, title, starts_at FROM events
-            WHERE user_id = ? AND starts_at >= ?
-            ORDER BY starts_at, id
-            LIMIT 10
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    overdue_commitments = connection.execute(
+        """
+        SELECT id, title, deadline FROM commitments
+        WHERE user_id = ? AND status = 'pending'
+            AND deadline IS NOT NULL AND deadline < ?
+        ORDER BY deadline, id
+        LIMIT 5
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-        notify_overdue_tasks = connection.execute(
-            """
-            SELECT id, title, due_at FROM tasks
-            WHERE user_id = ? AND status = 'pending'
-                AND due_at IS NOT NULL AND due_at < ?
-            ORDER BY due_at, id
-            LIMIT 10
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    due_soon_tasks = connection.execute(
+        """
+        SELECT id, title, due_at FROM tasks
+        WHERE user_id = ? AND status != 'completed'
+            AND due_at IS NOT NULL AND due_at >= ?
+        ORDER BY due_at, id
+        LIMIT 5
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-        notify_overdue_commitments = connection.execute(
-            """
-            SELECT id, title, deadline FROM commitments
-            WHERE user_id = ? AND status = 'pending'
-                AND deadline IS NOT NULL AND deadline < ?
-            ORDER BY deadline, id
-            LIMIT 10
-            """,
-            (session["user_id"], now),
-        ).fetchall()
+    # Notification candidates for the client-side V1 poller: upcoming
+    # pending tasks, upcoming events, and overdue pending items. Rendered
+    # as data attributes so plain HTML works without JS too.
+    notify_tasks = connection.execute(
+        """
+        SELECT id, title, due_at FROM tasks
+        WHERE user_id = ? AND status = 'pending' AND due_at IS NOT NULL
+        ORDER BY due_at, id
+        LIMIT 10
+        """,
+        (session["user_id"],),
+    ).fetchall()
 
-        connection.close()
+    notify_events = connection.execute(
+        """
+        SELECT id, title, starts_at FROM events
+        WHERE user_id = ? AND starts_at >= ?
+        ORDER BY starts_at, id
+        LIMIT 10
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-        return render_template(
-            "dashboard.html",
-            active_goals=active_goals,
-            upcoming_event_count=upcoming_event_count,
-            upcoming_events=upcoming_events,
-            pending_commitment_count=pending_commitment_count,
-            next_commitments=next_commitments,
-            overdue_tasks=overdue_tasks,
-            overdue_commitments=overdue_commitments,
-            due_soon_tasks=due_soon_tasks,
-            notify_tasks=notify_tasks,
-            notify_events=notify_events,
-            notify_overdue_tasks=notify_overdue_tasks,
-            notify_overdue_commitments=notify_overdue_commitments,
-        )
+    notify_overdue_tasks = connection.execute(
+        """
+        SELECT id, title, due_at FROM tasks
+        WHERE user_id = ? AND status = 'pending'
+            AND due_at IS NOT NULL AND due_at < ?
+        ORDER BY due_at, id
+        LIMIT 10
+        """,
+        (session["user_id"], now),
+    ).fetchall()
 
-    return "EXECUTE is running."
+    notify_overdue_commitments = connection.execute(
+        """
+        SELECT id, title, deadline FROM commitments
+        WHERE user_id = ? AND status = 'pending'
+            AND deadline IS NOT NULL AND deadline < ?
+        ORDER BY deadline, id
+        LIMIT 10
+        """,
+        (session["user_id"], now),
+    ).fetchall()
+
+    connection.close()
+
+    return render_template(
+        "dashboard.html",
+        active_goals=active_goals,
+        upcoming_event_count=upcoming_event_count,
+        upcoming_events=upcoming_events,
+        pending_commitment_count=pending_commitment_count,
+        next_commitments=next_commitments,
+        overdue_tasks=overdue_tasks,
+        overdue_commitments=overdue_commitments,
+        due_soon_tasks=due_soon_tasks,
+        notify_tasks=notify_tasks,
+        notify_events=notify_events,
+        notify_overdue_tasks=notify_overdue_tasks,
+        notify_overdue_commitments=notify_overdue_commitments,
+    )
 
 
 @app.route("/register", methods=["GET", "POST"])

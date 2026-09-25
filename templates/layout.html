@@ -22,7 +22,7 @@
                     <a
                         class="nav-link"
                         href="{{ url_for('index') }}"
-                        {% if request.endpoint == "index" %}aria-current="page"{% endif %}
+                        {% if request.endpoint in ["index", "dashboard"] %}aria-current="page"{% endif %}
                     >Dashboard</a>
 
                     <a

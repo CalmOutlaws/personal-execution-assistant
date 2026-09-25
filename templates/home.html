@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this landing page was created with AI assistance and reviewed by the author. #}
+{% block title %}EXECUTE - Turn intentions into actions{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">CS50x final project</p>
+            <h1>EXECUTE</h1>
+            <p class="page-subtitle">
+                Turn intentions into actions. Write what you need to do in one
+                sentence, review what EXECUTE understood, then confirm it.
+            </p>
+        </div>
+
+        <div class="page-header__actions">
+            <a class="btn btn--primary" href="{{ url_for('register') }}">Create account</a>
+            <a class="btn btn--ghost" href="{{ url_for('login') }}">Log in</a>
+        </div>
+    </header>
+
+    <section class="section" aria-labelledby="home-features-heading">
+        <div class="section__header">
+            <h2 id="home-features-heading">What EXECUTE does</h2>
+        </div>
+
+        <div class="action-grid">
+            <div class="card">
+                <h3>Quick Add</h3>
+                <p class="muted">
+                    Type one sentence, or dictate it with the browser's speech
+                    recognition. EXECUTE shows what it understood before anything
+                    is saved.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Tasks with due dates</h3>
+                <p class="muted">
+                    Track pending and completed work with priorities, due dates and
+                    repeating tasks that roll forward when you finish them.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Goals and breakdowns</h3>
+                <p class="muted">
+                    Group tasks under an outcome, then turn a goal into a short list
+                    of suggested steps you can edit and accept.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Events and commitments</h3>
+                <p class="muted">
+                    Keep scheduled time and promises made to other people separate
+                    from your task list.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Search and filters</h3>
+                <p class="muted">
+                    Search across your tasks, goals, events and commitments, and
+                    filter the task list by status, priority or recurrence.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Reminders in the browser</h3>
+                <p class="muted">
+                    Opt in to browser notifications so upcoming and overdue items on
+                    the dashboard do not slip past you.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" aria-labelledby="home-start-heading">
+        <div class="section__header">
+            <h2 id="home-start-heading">How to start</h2>
+        </div>
+
+        <div class="card">
+            <p class="muted">
+                Create an account or log in. Everything you add is private to your
+                account: tasks, goals, events and commitments are only ever read
+                back for the user who created them.
+            </p>
+            <p class="muted">
+                Once you are signed in, opening the home page takes you straight to
+                your dashboard.
+            </p>
+        </div>
+    </section>
+{% endblock %}

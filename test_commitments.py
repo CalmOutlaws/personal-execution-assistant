@@ -507,7 +507,8 @@ class CommitmentDashboardTests(CommitmentTestBase):
         self.logout()
         self.login("alice", "password-a")
 
-        body = self.text(self.client.get("/"))
+        # Signed-in "/" redirects here; see test_home.py.
+        body = self.text(self.client.get("/dashboard"))
 
         self.assertIn("2 pending commitments you have promised to others.", body)
         self.assertIn("Alice pending one", body)
@@ -521,7 +522,8 @@ class CommitmentDashboardTests(CommitmentTestBase):
         self.create_commitment(title="Undated promise", deadline="")
         self.create_commitment(title="Fourth promise", deadline="2099-04-01T09:00")
 
-        body = self.text(self.client.get("/"))
+        # Signed-in "/" redirects here; see test_home.py.
+        body = self.text(self.client.get("/dashboard"))
 
         self.assertIn("Earliest promise", body)
         self.assertIn("Middle promise", body)
@@ -541,7 +543,8 @@ class CommitmentDashboardTests(CommitmentTestBase):
         self.assertIn("No deadline", listing)
 
     def test_dashboard_shows_a_commitment_empty_state(self):
-        body = self.text(self.client.get("/"))
+        # Signed-in "/" redirects here; see test_home.py.
+        body = self.text(self.client.get("/dashboard"))
 
         self.assertIn("You have nothing pending.", body)
         self.assertIn('href="/commitments"', body)
@@ -611,7 +614,8 @@ class ExistingFeatureRegressionTests(CommitmentTestBase):
 
     def test_pages_still_render(self):
         for url in (
-            "/",
+            # Signed-in "/" redirects to the dashboard; see test_home.py.
+            "/dashboard",
             "/tasks",
             "/tasks/new",
             "/goals",

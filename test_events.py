@@ -434,7 +434,8 @@ class DashboardAndNavigationTests(EventTestBase):
         self.logout()
         self.login("alice", "password-a")
 
-        body = self.text(self.client.get("/"))
+        # Signed-in "/" redirects here; see test_home.py.
+        body = self.text(self.client.get("/dashboard"))
         self.assertIn("Alice future", body)
         self.assertIn("Alice second", body)
         self.assertIn("2 upcoming events on your schedule.", body)
@@ -442,7 +443,8 @@ class DashboardAndNavigationTests(EventTestBase):
         self.assertNotIn("Alice past", body)
 
     def test_dashboard_shows_an_empty_event_state_without_events(self):
-        body = self.text(self.client.get("/"))
+        # Signed-in "/" redirects here; see test_home.py.
+        body = self.text(self.client.get("/dashboard"))
 
         self.assertIn("Nothing scheduled yet.", body)
         self.assertIn('href="/events"', body)
@@ -520,7 +522,8 @@ class ExistingFeatureRegressionTests(EventTestBase):
 
     def test_pages_still_render(self):
         for url in (
-            "/",
+            # Signed-in "/" redirects to the dashboard; see test_home.py.
+            "/dashboard",
             "/tasks",
             "/tasks/new",
             "/goals",
