@@ -293,6 +293,22 @@ a:hover {
     color: var(--text-muted);
 }
 
+/* AI disclosure: inline filter/search layout added with AI assistance. */
+.form--inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+.form--inline .field {
+    min-width: 160px;
+}
+
+.form--inline .form-actions {
+    margin-top: 0;
+}
+
 .count {
     padding: 2px 9px;
     border: 1px solid var(--border);
