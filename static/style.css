@@ -756,6 +756,58 @@ a:hover {
     font-size: 0.92rem;
 }
 
+
+/* Quick Add uses the same surfaces and type hierarchy as the other forms. */
+.quick-add-form textarea {
+    min-height: 120px;
+}
+
+.interpretation-card {
+    max-width: 760px;
+}
+
+.interpretation-card__quote {
+    margin: 10px 0 24px;
+    padding: 16px 18px;
+    border-left: 3px solid var(--accent);
+    background-color: var(--surface-hover);
+    font-size: 1.08rem;
+}
+
+.definition-list {
+    display: grid;
+    gap: 0;
+    margin: 0 0 24px;
+}
+
+.definition-list > div {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.definition-list dt {
+    color: var(--text-faint);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.definition-list dd {
+    margin: 0;
+}
+
+@media (max-width: 560px) {
+    .definition-list > div {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
+
 /* ==========================================================================
    10. Authentication pages
    ========================================================================== */

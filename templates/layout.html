@@ -26,6 +26,12 @@
                     >Dashboard</a>
 
                     <a
+                        class="nav-link nav-link--accent"
+                        href="{{ url_for('quick_add') }}"
+                        {% if request.endpoint == "quick_add" %}aria-current="page"{% endif %}
+                    >Quick Add</a>
+
+                    <a
                         class="nav-link"
                         href="{{ url_for('tasks') }}"
                         {% if request.endpoint == "tasks" %}aria-current="page"{% endif %}

@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance and reviewed by the author. #}
+{% block title %}Quick Add - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Natural-language input</p>
+            <h1>Quick Add</h1>
+            <p class="page-subtitle">Describe what you want to do. EXECUTE will show its interpretation before anything is saved.</p>
+        </div>
+    </header>
+
+    {% if error %}
+        <div class="alert alert--error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="form quick-add-form" method="POST" action="{{ url_for('quick_add') }}">
+        <div class="field">
+            <label for="text">What would you like to add?</label>
+            <textarea id="text" name="text" rows="4" required placeholder="e.g. Meet Rahul at Church Street tomorrow at 6 PM">{{ text }}</textarea>
+            <p class="field__hint">Try an event, commitment, or task in plain language.</p>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">Interpret input</button>
+            <a class="btn btn--ghost" href="{{ url_for('index') }}">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

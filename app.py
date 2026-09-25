@@ -7,6 +7,7 @@ from flask import Flask, abort, render_template, request, redirect, url_for, ses
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import get_db, init_db
+from parser import parse_input
 
 # AI disclosure (CS50 final project requirement): this project was written with
 # the help of an AI coding assistant. AI assistance was used for the task, goal,
@@ -253,6 +254,73 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
+    return redirect(url_for("login"))
+
+
+def _format_interpretation_time(value):
+    if not value:
+        return "Not specified"
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        return "{} at {}:{} {}".format(
+            parsed.strftime("%A, %B %d").replace(" 0", " "),
+            parsed.strftime("%I").lstrip("0") or "0",
+            parsed.strftime("%M"),
+            parsed.strftime("%p"),
+        )
+    except (TypeError, ValueError):
+        return value
+
+
+
+
+
+@app.route("/quick-add", methods=["GET", "POST"])
+@login_required
+def quick_add():
+    """Interpret a sentence and show a confirmation preview without persisting it.
+
+    The parsed result is kept in the signed Flask session only as display state.
+    It is not trusted as an ownership or creation record; a later milestone can
+    replace it with a server-side confirmation flow.
+    """
+    if request.method == "GET":
+        session.pop("quick_add_interpretation", None)
+        return render_template("quick_add.html", text="", interpretation=None)
+
+    text = request.form.get("text", "").strip()
+    if not text:
+        return (
+            render_template(
+                "quick_add.html",
+                text="",
+                interpretation=None,
+                error="Please enter what you want to add.",
+            ),
+            400,
+        )
+
+    interpretation = parse_input(text)
+    if interpretation.get("type") == "unknown":
+        return (
+            render_template(
+                "quick_add.html",
+                text=text,
+                interpretation=interpretation,
+                error=interpretation.get("error"),
+            ),
+            200,
+        )
+
+    interpretation["display_when"] = _format_interpretation_time(
+        interpretation.get("starts_at") or interpretation.get("due_at")
+        or interpretation.get("deadline")
+    )
+    session["quick_add_interpretation"] = interpretation
+    return render_template(
+        "quick_add_confirmation.html", text=text, interpretation=interpretation
+    )
+
     return redirect(url_for("login"))
 
 
