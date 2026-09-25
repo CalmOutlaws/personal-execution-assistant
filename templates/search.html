@@ -1,0 +1,86 @@
+{# AI disclosure: search page created with AI assistance and reviewed by the author. #}
+{% extends "layout.html" %}
+
+{% block title %}Search - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Search</p>
+            <h1>Search your work</h1>
+            <p class="page-subtitle">Search across your tasks, goals, events, and commitments.</p>
+        </div>
+    </header>
+
+    <form class="form" method="GET" action="{{ url_for('search') }}" role="search">
+        <div class="field">
+            <label for="search-query">Search</label>
+            <input type="search" id="search-query" name="q" value="{{ query }}" placeholder="e.g. DBMS, Church Street, Professor Rao" maxlength="200">
+        </div>
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">Search</button>
+            {% if query %}<a class="btn btn--ghost" href="{{ url_for('search') }}">Clear</a>{% endif %}
+        </div>
+    </form>
+
+    {% if not searched %}
+        <p class="empty-state">Enter a word or phrase above to search your tasks, goals, events, and commitments.</p>
+    {% else %}
+        {% set total = task_results|length + goal_results|length + event_results|length + commitment_results|length %}
+        {% if total == 0 %}
+            <p class="empty-state">No results for “{{ query }}”. Try a different word, or <a href="{{ url_for('quick_add') }}">add it with Quick Add</a>.</p>
+        {% else %}
+            <section class="section" aria-labelledby="search-tasks-heading">
+                <div class="section__header"><h2 id="search-tasks-heading">Tasks</h2><span class="count">{{ task_results|length }}</span></div>
+                {% if task_results %}
+                    <ul class="task-list">
+                        {% for task in task_results %}
+                            <li class="task">
+                                <div><h3 class="task__title"><a href="{{ url_for('task_detail', task_id=task['id']) }}">{{ task["title"] }}</a></h3>
+                                {% if task["description"] %}<p class="task__description">{{ task["description"] }}</p>{% endif %}</div>
+                                <ul class="task__meta"><li>{{ task["status"]|capitalize }} &middot; {{ task["priority"]|capitalize }} priority</li><li>{% if task["due_at"] %}Due {{ task["due_at"] }}{% else %}No due date{% endif %}</li></ul>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}<p class="empty-state">No matching tasks.</p>{% endif %}
+            </section>
+
+            <section class="section" aria-labelledby="search-goals-heading">
+                <div class="section__header"><h2 id="search-goals-heading">Goals</h2><span class="count">{{ goal_results|length }}</span></div>
+                {% if goal_results %}
+                    <ul class="goal-list">
+                        {% for goal in goal_results %}
+                            <li class="goal"><div><h3 class="goal__title"><a href="{{ url_for('goal_detail', goal_id=goal['id']) }}">{{ goal["title"] }}</a></h3>
+                            {% if goal["description"] %}<p class="goal__description">{{ goal["description"] }}</p>{% endif %}</div>
+                            <ul class="goal__meta"><li>{{ goal["status"]|capitalize }}</li><li>{% if goal["deadline"] %}Deadline {{ goal["deadline"] }}{% else %}No deadline{% endif %}</li></ul></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}<p class="empty-state">No matching goals.</p>{% endif %}
+            </section>
+
+            <section class="section" aria-labelledby="search-events-heading">
+                <div class="section__header"><h2 id="search-events-heading">Events</h2><span class="count">{{ event_results|length }}</span></div>
+                {% if event_results %}
+                    <ul class="event-list">
+                        {% for event in event_results %}
+                            <li class="event"><div><h3 class="event__title"><a href="{{ url_for('event_detail', event_id=event['id']) }}">{{ event["title"] }}</a></h3></div>
+                            <ul class="event__meta"><li>Starts {{ event["starts_at"] }}</li>{% if event["location"] %}<li>Location: {{ event["location"] }}</li>{% endif %}</ul></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}<p class="empty-state">No matching events.</p>{% endif %}
+            </section>
+
+            <section class="section" aria-labelledby="search-commitments-heading">
+                <div class="section__header"><h2 id="search-commitments-heading">Commitments</h2><span class="count">{{ commitment_results|length }}</span></div>
+                {% if commitment_results %}
+                    <ul class="commitment-list">
+                        {% for commitment in commitment_results %}
+                            <li class="commitment"><div><h3 class="commitment__title"><a href="{{ url_for('commitment_detail', commitment_id=commitment['id']) }}">{{ commitment["title"] }}</a></h3></div>
+                            <ul class="commitment__meta">{% if commitment["committed_to"] %}<li>Committed to {{ commitment["committed_to"] }}</li>{% endif %}<li>{{ commitment["status"]|capitalize }}{% if commitment["deadline"] %} &middot; Deadline {{ commitment["deadline"] }}{% endif %}</li></ul></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}<p class="empty-state">No matching commitments.</p>{% endif %}
+            </section>
+        {% endif %}
+    {% endif %}
+{% endblock %}

@@ -15,6 +15,41 @@
         <a class="btn btn--primary" href="{{ url_for('new_task') }}">Create task</a>
     </header>
 
+    {# AI disclosure: task filters added with AI assistance; default list behavior unchanged. #}
+    {% set current_status = filters.get("status", "all") if filters is defined else "all" %}
+    {% set current_priority = filters.get("priority", "all") if filters is defined else "all" %}
+    {% set current_recurring = filters.get("recurring", "") if filters is defined else "" %}
+    <form class="form form--inline" method="GET" action="{{ url_for('tasks') }}">
+        <div class="field">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" name="status">
+                {% for value in ["all", "pending", "completed"] %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ value|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="filter-priority">Priority</label>
+            <select id="filter-priority" name="priority">
+                {% for value in ["all", "low", "medium", "high"] %}
+                    <option value="{{ value }}" {% if current_priority == value %}selected{% endif %}>{{ value|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <input type="checkbox" id="filter-recurring" name="recurring" value="1" {% if current_recurring %}checked{% endif %}>
+            <label for="filter-recurring">Recurring only</label>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn--primary btn--small" type="submit">Apply filters</button>
+            <a class="btn btn--ghost btn--small" href="{{ url_for('tasks') }}">Reset</a>
+        </div>
+    </form>
+
+    {% if current_status != "all" or current_priority != "all" or current_recurring %}
+        <p class="muted" role="status">Filtered view: status {{ current_status }}, priority {{ current_priority }}{% if current_recurring %}, recurring only{% endif %}.</p>
+    {% endif %}
+
     <section class="section" aria-labelledby="pending-heading">
         <div class="section__header">
             <h2 id="pending-heading">Pending</h2>

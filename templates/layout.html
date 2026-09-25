@@ -56,6 +56,12 @@
                     >Commitments</a>
 
                     <a
+                        class="nav-link"
+                        href="{{ url_for('search') }}"
+                        {% if request.endpoint == "search" %}aria-current="page"{% endif %}
+                    >Search</a>
+
+                    <a
                         class="nav-link nav-link--accent"
                         href="{{ url_for('new_task') }}"
                         {% if request.endpoint == "new_task" %}aria-current="page"{% endif %}
