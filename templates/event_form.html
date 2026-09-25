@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. It is shared by "create event" and "edit event". #}
+
+{% set editing = event is defined and event %}
+
+{% if editing %}
+    {% set form_action = url_for('edit_event', event_id=event['id']) %}
+    {% set cancel_url = url_for('event_detail', event_id=event['id']) %}
+    {% set current_title = request.form.get('title', event['title']) %}
+    {% set current_description = request.form.get('description', event['description'] or '') %}
+    {% set current_location = request.form.get('location', event['location'] or '') %}
+    {# Stored timestamps read "YYYY-MM-DD HH:MM:SS"; a datetime-local input wants
+       "YYYY-MM-DDTHH:MM", so the space becomes a T and the seconds are dropped. #}
+    {% set current_starts_at = request.form.get('starts_at', (event['starts_at'] or '')[:16]|replace(' ', 'T')) %}
+    {% set current_ends_at = request.form.get('ends_at', (event['ends_at'] or '')[:16]|replace(' ', 'T')) %}
+{% else %}
+    {% set form_action = url_for('new_event') %}
+    {% set cancel_url = url_for('events') %}
+    {% set current_title = request.form.get('title', '') %}
+    {% set current_description = request.form.get('description', '') %}
+    {% set current_location = request.form.get('location', '') %}
+    {% set current_starts_at = request.form.get('starts_at', '') %}
+    {% set current_ends_at = request.form.get('ends_at', '') %}
+{% endif %}
+
+{% block title %}{% if editing %}Edit event{% else %}New Event{% endif %} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">{% if editing %}Edit event{% else %}New event{% endif %}</p>
+            <h1>{% if editing %}Edit event{% else %}Create an event{% endif %}</h1>
+            <p class="page-subtitle">
+                {% if editing %}
+                    Update when, where and what this event is.
+                {% else %}
+                    Block out the time now, so the rest of the week can be planned
+                    around it.
+                {% endif %}
+            </p>
+        </div>
+    </header>
+
+    {% if errors %}
+        <div class="alert alert--error" role="alert">
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form class="form" method="POST" action="{{ form_action }}">
+        <div class="field">
+            <label for="title">Title</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                value="{{ current_title }}"
+                placeholder="e.g. Dentist appointment"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="description">
+                Description <span class="field__hint">optional</span>
+            </label>
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+                placeholder="Anything worth remembering about this event?"
+            >{{ current_description }}</textarea>
+        </div>
+
+        <div class="field">
+            <label for="starts_at">Start date and time</label>
+            <input
+                type="datetime-local"
+                id="starts_at"
+                name="starts_at"
+                value="{{ current_starts_at }}"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="ends_at">
+                End date and time <span class="field__hint">optional</span>
+            </label>
+            <input
+                type="datetime-local"
+                id="ends_at"
+                name="ends_at"
+                value="{{ current_ends_at }}"
+            >
+            <p class="field__hint">Must be the same as, or later than, the start.</p>
+        </div>
+
+        <div class="field">
+            <label for="location">
+                Location <span class="field__hint">optional</span>
+            </label>
+            <input
+                type="text"
+                id="location"
+                name="location"
+                value="{{ current_location }}"
+                placeholder="e.g. Room 4, or a link"
+            >
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">
+                {% if editing %}Save changes{% else %}Create event{% endif %}
+            </button>
+            <a class="btn btn--ghost" href="{{ cancel_url }}">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

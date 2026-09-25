@@ -1,0 +1,54 @@
+{# One event card. Shared by the upcoming and past sections of the events page
+   so both stay visually identical. Expects "event" and a boolean "upcoming".
+   AI disclosure: created with AI assistance, reviewed and tested by the author. #}
+<li class="event{% if not upcoming %} event--past{% endif %}">
+    <div>
+        <h3 class="event__title">
+            <a href="{{ url_for('event_detail', event_id=event['id']) }}">
+                {{ event["title"] }}
+            </a>
+        </h3>
+
+        {% if event["description"] %}
+            <p class="event__description">{{ event["description"] }}</p>
+        {% endif %}
+    </div>
+
+    <ul class="event__meta">
+        <li>
+            <span class="badge{% if upcoming %} badge--active{% endif %}">
+                {% if upcoming %}Upcoming{% else %}Past{% endif %}
+            </span>
+        </li>
+
+        <li>Starts {{ event["starts_at"] }}</li>
+
+        <li>
+            {% if event["ends_at"] %}
+                Ends {{ event["ends_at"] }}
+            {% else %}
+                No end time
+            {% endif %}
+        </li>
+
+        {% if event["location"] %}
+            <li>Location: {{ event["location"] }}</li>
+        {% endif %}
+    </ul>
+
+    <div class="event__actions">
+        <a
+            class="btn btn--ghost btn--small"
+            href="{{ url_for('event_detail', event_id=event['id']) }}"
+        >View event</a>
+
+        <a
+            class="btn btn--ghost btn--small"
+            href="{{ url_for('edit_event', event_id=event['id']) }}"
+        >Edit</a>
+
+        <form method="POST" action="{{ url_for('delete_event', event_id=event['id']) }}">
+            <button class="btn btn--danger btn--small" type="submit">Delete</button>
+        </form>
+    </div>
+</li>

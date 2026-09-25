@@ -9,8 +9,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, init_db
 
 # AI disclosure (CS50 final project requirement): this project was written with
-# the help of an AI coding assistant. AI assistance was used for the goal and
-# task management routes below, for the templates in templates/ and for
+# the help of an AI coding assistant. AI assistance was used for the task, goal
+# and event management routes below, for the templates in templates/ and for
 # static/style.css; every change was reviewed and tested by the author.
 
 load_dotenv()
@@ -38,6 +38,16 @@ def parse_datetime(value):
         return None, False
 
 
+def now_timestamp():
+    """The current local time in the same format as a stored timestamp.
+
+    Every date entered through a form is normalized by parse_datetime() into a
+    zero-padded "YYYY-MM-DD HH:MM:SS" string, so events can be compared against
+    this value directly without a timezone library or an extra dependency.
+    """
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def load_owned_goal(goal_id):
     """Return the logged-in user's goal, or abort with a 404.
 
@@ -59,6 +69,27 @@ def load_owned_goal(goal_id):
     return goal
 
 
+def load_owned_event(event_id):
+    """Return the logged-in user's event, or abort with a 404.
+
+    As with goals, every event lookup is scoped by the session user_id, so
+    another user's event can never be read or changed by guessing its id.
+    """
+    connection = get_db()
+
+    event = connection.execute(
+        "SELECT * FROM events WHERE id = ? AND user_id = ?",
+        (event_id, session["user_id"]),
+    ).fetchone()
+
+    connection.close()
+
+    if event is None:
+        abort(404)
+
+    return event
+
+
 def login_required(view):
     """Redirect anonymous users to the login page."""
 
@@ -77,16 +108,41 @@ def index():
     if "user_id" in session:
         connection = get_db()
 
-        # Small dashboard summary: how many goals are still active. The full
-        # analytics dashboard belongs to a later milestone.
+        # Small dashboard summary: how many goals are still active and what is
+        # coming up next. The full analytics dashboard belongs to a later
+        # milestone.
         active_goals = connection.execute(
             "SELECT COUNT(*) FROM goals WHERE user_id = ? AND status = 'active'",
             (session["user_id"],),
         ).fetchone()[0]
 
+        now = now_timestamp()
+
+        # Upcoming events are counted and listed for the current user only. The
+        # list is capped because this is a summary, not the events page.
+        upcoming_event_count = connection.execute(
+            "SELECT COUNT(*) FROM events WHERE user_id = ? AND starts_at >= ?",
+            (session["user_id"], now),
+        ).fetchone()[0]
+
+        upcoming_events = connection.execute(
+            """
+            SELECT * FROM events
+            WHERE user_id = ? AND starts_at >= ?
+            ORDER BY starts_at, id
+            LIMIT 3
+            """,
+            (session["user_id"], now),
+        ).fetchall()
+
         connection.close()
 
-        return render_template("dashboard.html", active_goals=active_goals)
+        return render_template(
+            "dashboard.html",
+            active_goals=active_goals,
+            upcoming_event_count=upcoming_event_count,
+            upcoming_events=upcoming_events,
+        )
 
     return "EXECUTE is running."
 
@@ -525,6 +581,191 @@ def delete_goal(goal_id):
         abort(404)
 
     return redirect(url_for("goals"))
+
+
+@app.route("/events")
+@login_required
+def events():
+    connection = get_db()
+
+    # Only the current user's events are ever returned. They are sorted by start
+    # time here, then split into upcoming and past in Python so both sections
+    # share a single query.
+    rows = connection.execute(
+        """
+        SELECT * FROM events
+        WHERE user_id = ?
+        ORDER BY starts_at, id
+        """,
+        (session["user_id"],),
+    ).fetchall()
+
+    connection.close()
+
+    now = now_timestamp()
+
+    # Stored timestamps are zero-padded, so comparing them as text is enough to
+    # decide whether an event has started yet.
+    upcoming_events = [event for event in rows if event["starts_at"] >= now]
+
+    # Past events read newest first, which is how a log is usually reviewed.
+    past_events = [event for event in rows if event["starts_at"] < now][::-1]
+
+    return render_template(
+        "events.html",
+        upcoming_events=upcoming_events,
+        past_events=past_events,
+    )
+
+
+def validate_event_form(form):
+    """Validate a submitted event form.
+
+    Returns (values, errors). values holds the normalized column values, ready
+    to be passed to SQLite as parameters. The event owner is deliberately not
+    part of the result: user_id always comes from the session, never from the
+    form, so a crafted user_id field cannot reassign an event.
+    """
+    title = form.get("title", "").strip()
+    description = form.get("description", "").strip()
+    location = form.get("location", "").strip()
+    starts_at, starts_at_is_valid = parse_datetime(form.get("starts_at", ""))
+    ends_at, ends_at_is_valid = parse_datetime(form.get("ends_at", ""))
+
+    errors = []
+
+    if not title:
+        errors.append("Title is required.")
+
+    if not starts_at_is_valid:
+        errors.append("Start date and time must be a valid date and time.")
+    elif not starts_at:
+        errors.append("Start date and time is required.")
+
+    if not ends_at_is_valid:
+        errors.append("End date and time must be a valid date and time.")
+
+    # Both values use the same zero-padded stored format, so a plain string
+    # comparison detects an end that comes before the start.
+    if starts_at and ends_at and ends_at < starts_at:
+        errors.append("End date and time cannot be before the start.")
+
+    values = {
+        "title": title,
+        "description": description or None,
+        "starts_at": starts_at,
+        "ends_at": ends_at,
+        "location": location or None,
+    }
+
+    return values, errors
+
+
+@app.route("/events/new", methods=["GET", "POST"])
+@login_required
+def new_event():
+    if request.method == "POST":
+        values, errors = validate_event_form(request.form)
+
+        if errors:
+            return render_template("event_form.html", errors=errors), 400
+
+        connection = get_db()
+
+        # user_id always comes from the session, never from the submitted form.
+        connection.execute(
+            """
+            INSERT INTO events (user_id, title, description, starts_at, ends_at,
+                location)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                values["title"],
+                values["description"],
+                values["starts_at"],
+                values["ends_at"],
+                values["location"],
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        return redirect(url_for("events"))
+
+    return render_template("event_form.html")
+
+
+@app.route("/events/<int:event_id>")
+@login_required
+def event_detail(event_id):
+    event = load_owned_event(event_id)
+
+    return render_template("event.html", event=event)
+
+
+@app.route("/events/<int:event_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_event(event_id):
+    event = load_owned_event(event_id)
+
+    if request.method == "POST":
+        values, errors = validate_event_form(request.form)
+
+        if errors:
+            return (
+                render_template("event_form.html", errors=errors, event=event),
+                400,
+            )
+
+        connection = get_db()
+
+        # The update is scoped to the session user and never touches user_id or
+        # created_at, so an event cannot be handed to another account.
+        connection.execute(
+            """
+            UPDATE events
+            SET title = ?, description = ?, starts_at = ?, ends_at = ?,
+                location = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (
+                values["title"],
+                values["description"],
+                values["starts_at"],
+                values["ends_at"],
+                values["location"],
+                event_id,
+                session["user_id"],
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        return redirect(url_for("event_detail", event_id=event_id))
+
+    return render_template("event_form.html", event=event)
+
+
+@app.route("/events/<int:event_id>/delete", methods=["POST"])
+@login_required
+def delete_event(event_id):
+    connection = get_db()
+
+    # As with tasks and goals, the delete is scoped to the logged-in user, and
+    # the route only accepts POST so a link or a crawl cannot remove an event.
+    cursor = connection.execute(
+        "DELETE FROM events WHERE id = ? AND user_id = ?",
+        (event_id, session["user_id"]),
+    )
+    deleted = cursor.rowcount
+    connection.commit()
+    connection.close()
+
+    if deleted == 0:
+        abort(404)
+
+    return redirect(url_for("events"))
 
 
 if __name__ == "__main__":

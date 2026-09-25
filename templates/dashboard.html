@@ -62,6 +62,62 @@
                 </span>
                 <span class="action-card__cta">Open goals</span>
             </a>
+
+            <a class="action-card" href="{{ url_for('events') }}">
+                <span class="action-card__label">Events</span>
+                <span class="action-card__text">
+                    {% if upcoming_event_count %}
+                        {{ upcoming_event_count }}
+                        upcoming event{% if upcoming_event_count != 1 %}s{% endif %}
+                        on your schedule.
+                    {% else %}
+                        Block out time for something already planned.
+                    {% endif %}
+                </span>
+                <span class="action-card__cta">Open events</span>
+            </a>
         </div>
+    </section>
+
+    <section class="section" aria-labelledby="event-summary-heading">
+        <div class="section__header">
+            <h2 id="event-summary-heading">Upcoming events</h2>
+            <span class="count">{{ upcoming_event_count }}</span>
+        </div>
+
+        {% if upcoming_events %}
+            <ul class="event-list">
+                {% for event in upcoming_events %}
+                    <li class="event">
+                        <div>
+                            <h3 class="event__title">
+                                <a href="{{ url_for('event_detail', event_id=event['id']) }}">
+                                    {{ event["title"] }}
+                                </a>
+                            </h3>
+                        </div>
+
+                        <ul class="event__meta">
+                            <li>Starts {{ event["starts_at"] }}</li>
+
+                            {% if event["location"] %}
+                                <li>Location: {{ event["location"] }}</li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <p class="muted">
+                Showing the next {{ upcoming_events|length }} of
+                {{ upcoming_event_count }}.
+                <a href="{{ url_for('events') }}">See all events</a>.
+            </p>
+        {% else %}
+            <p class="empty-state">
+                Nothing scheduled yet.
+                <a href="{{ url_for('new_event') }}">Create an event</a>.
+            </p>
+        {% endif %}
     </section>
 {% endblock %}

@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. #}
+
+{% block title %}{{ event["title"] }} - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Event</p>
+            <h1>{{ event["title"] }}</h1>
+            <p class="page-subtitle">
+                When and where this event takes place.
+            </p>
+        </div>
+
+        <div class="page-header__actions">
+            <a
+                class="btn btn--ghost"
+                href="{{ url_for('edit_event', event_id=event['id']) }}"
+            >Edit event</a>
+
+            <form
+                method="POST"
+                action="{{ url_for('delete_event', event_id=event['id']) }}"
+            >
+                <button class="btn btn--danger" type="submit">Delete</button>
+            </form>
+        </div>
+    </header>
+
+    <section class="section" aria-labelledby="event-details-heading">
+        <div class="section__header">
+            <h2 id="event-details-heading">Details</h2>
+        </div>
+
+        <div class="card">
+            <dl class="meta-list">
+                <div class="meta-list__item">
+                    <dt>Starts</dt>
+                    <dd>{{ event["starts_at"] }}</dd>
+                </div>
+
+                <div class="meta-list__item">
+                    <dt>Ends</dt>
+                    <dd>
+                        {% if event["ends_at"] %}
+                            {{ event["ends_at"] }}
+                        {% else %}
+                            No end time
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div class="meta-list__item">
+                    <dt>Location</dt>
+                    <dd>
+                        {% if event["location"] %}
+                            {{ event["location"] }}
+                        {% else %}
+                            No location
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div class="meta-list__item">
+                    <dt>Created</dt>
+                    <dd>{{ event["created_at"] }}</dd>
+                </div>
+            </dl>
+
+            {% if event["description"] %}
+                <p class="muted">{{ event["description"] }}</p>
+            {% else %}
+                <p class="muted">No description yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <p class="muted">
+        <a href="{{ url_for('events') }}">Back to all events</a>
+    </p>
+{% endblock %}

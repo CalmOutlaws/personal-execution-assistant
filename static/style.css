@@ -480,9 +480,10 @@ a:hover {
 }
 
 /* ==========================================================================
-   8. Task and goal cards
+   8. Task, goal and event cards
    ========================================================================== */
 
+.event-list,
 .task-list,
 .goal-list {
     display: grid;
@@ -492,6 +493,7 @@ a:hover {
     list-style: none;
 }
 
+.event,
 .task,
 .goal {
     display: grid;
@@ -503,16 +505,19 @@ a:hover {
     background-color: var(--surface);
 }
 
+.event__title,
 .task__title,
 .goal__title {
     font-size: 1.05rem;
 }
 
-/* A goal title links to its detail page, so keep it in the text colour */
+/* A goal or event title links to its detail page, so keep it in the text colour */
+.event__title a,
 .goal__title a {
     color: var(--text);
 }
 
+.event__description,
 .task__description,
 .goal__description {
     margin-top: 6px;
@@ -521,6 +526,9 @@ a:hover {
     overflow-wrap: anywhere;
 }
 
+.event__title,
+.event__meta,
+.event__actions,
 .task__title,
 .task__meta,
 .task__actions,
@@ -530,6 +538,7 @@ a:hover {
     overflow-wrap: anywhere;
 }
 
+.event__meta,
 .task__meta,
 .goal__meta {
     display: flex;
@@ -543,6 +552,7 @@ a:hover {
     list-style: none;
 }
 
+.event__actions,
 .task__actions,
 .goal__actions {
     display: flex;
@@ -550,6 +560,7 @@ a:hover {
     gap: 10px;
 }
 
+.event__actions form,
 .task__actions form,
 .goal__actions form {
     margin: 0;
@@ -619,6 +630,20 @@ a:hover {
 
 .goal--completed .goal__title a {
     color: var(--text-muted);
+}
+
+/* Past events are dimmed like completed tasks and goals, but stay readable */
+.event--past {
+    border-left-color: rgba(116, 128, 143, 0.5);
+    background-color: transparent;
+}
+
+.event--past .event__title a {
+    color: var(--text-muted);
+}
+
+.event--past .event__description {
+    color: var(--text-faint);
 }
 
 .empty-state {
@@ -778,10 +803,12 @@ a:hover {
         font-size: 1.45rem;
     }
 
+    .event__actions,
     .task__actions {
         width: 100%;
     }
 
+    .event__actions .btn,
     .task__actions .btn {
         flex: 1 1 auto;
     }

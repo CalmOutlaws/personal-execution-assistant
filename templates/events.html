@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{# AI disclosure: this template was created with AI assistance, reviewed and
+   tested by the author. #}
+
+{% block title %}Events - EXECUTE{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <div class="page-header__text">
+            <p class="eyebrow">Event management</p>
+            <h1>Events</h1>
+            <p class="page-subtitle">
+                The things already in your calendar, so they do not collide with
+                the work on your task list.
+            </p>
+        </div>
+
+        <a class="btn btn--primary" href="{{ url_for('new_event') }}">Create event</a>
+    </header>
+
+    <section class="section" aria-labelledby="upcoming-events-heading">
+        <div class="section__header">
+            <h2 id="upcoming-events-heading">Upcoming</h2>
+            <span class="count">{{ upcoming_events|length }}</span>
+        </div>
+
+        {% if upcoming_events %}
+            <ul class="event-list">
+                {% for event in upcoming_events %}
+                    {% set upcoming = True %}
+                    {% include "event_card.html" %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                Nothing scheduled yet.
+                <a href="{{ url_for('new_event') }}">Create your first event</a>.
+            </p>
+        {% endif %}
+    </section>
+
+    <section class="section" aria-labelledby="past-events-heading">
+        <div class="section__header">
+            <h2 id="past-events-heading">Past</h2>
+            <span class="count">{{ past_events|length }}</span>
+        </div>
+
+        {% if past_events %}
+            <ul class="event-list">
+                {% for event in past_events %}
+                    {% set upcoming = False %}
+                    {% include "event_card.html" %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">
+                No past events yet. Events move here once they have started.
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

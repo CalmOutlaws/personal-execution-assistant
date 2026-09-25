@@ -4,8 +4,8 @@
 
 EXECUTE is a personal execution assistant written in Python with Flask and
 SQLite. It is an early-stage project developed as a CS50x 2026 final project.
-The current version covers user accounts, tasks and goals; the larger ideas
-described under [What's Next](#whats-next) are not implemented yet.
+The current version covers user accounts, tasks, goals and events; the larger
+ideas described under [What's Next](#whats-next) are not implemented yet.
 
 ## Project Description
 
@@ -23,10 +23,11 @@ Interpreting free-form, natural-language input is part of that goal.
 
 The project is deliberately built up in small, verifiable milestones. What
 exists today is the foundation: an account, tasks with priorities and optional
-due dates, and goals that group related tasks together. Natural-language input,
-reminders and event/commitment handling are design goals for later milestones,
-not finished features. Nothing in this document should be read as a claim that
-the application is complete or production-ready.
+due dates, goals that group related tasks together, and events that block out
+time in the calendar. Natural-language input, reminders and commitment handling
+are design goals for later milestones, not finished features. Nothing in this
+document should be read as a claim that the application is complete or
+production-ready.
 
 ## Current Features
 
@@ -61,16 +62,26 @@ the application is complete or production-ready.
 - Mark a goal as complete.
 - Delete a goal. Its tasks are not deleted; they are kept and become unlinked.
 
+**Events**
+
+- Create an event with a title, an optional description, a start date and time,
+  an optional end date and time and an optional location.
+- List events, split into upcoming and past, ordered by start time.
+- Open an event detail page showing when and where it takes place.
+- Edit an event's title, description, start, end and location.
+- Delete an event.
+
 **Data isolation and security**
 
-- Every task and goal belongs to the user who created it.
-- All reads and writes are scoped to the logged-in user, so another user's task
-  or goal cannot be listed, opened, edited, completed or deleted; requests for
-  data that is not yours return a 404.
+- Every task, goal and event belongs to the user who created it.
+- All reads and writes are scoped to the logged-in user, so another user's task,
+  goal or event cannot be listed, opened, edited, completed or deleted;
+  requests for data that is not yours return a 404.
 - A task can only be linked to a goal that the same user owns and that is still
   active.
-- All database access uses parameterised SQL queries, and the task/goal owner is
-  always taken from the session rather than from submitted form data.
+- All database access uses parameterised SQL queries, and the task, goal or
+  event owner is always taken from the session rather than from submitted form
+  data.
 
 **Interface**
 
@@ -105,6 +116,7 @@ project/
 ├── app.py                  # Flask application: routes, validation, authentication
 ├── database.py             # SQLite helpers: connection handling and schema setup
 ├── requirements.txt        # Pinned Python dependencies
+├── test_events.py          # Automated checks for the event routes and ownership rules
 ├── .env                    # Local SECRET_KEY (ignored by git, not committed)
 ├── execute.db              # SQLite database file (ignored by git, created on first run)
 ├── templates/
@@ -117,7 +129,11 @@ project/
 │   ├── task_card.html      # Partial rendering a single task, shared by the task and goal pages
 │   ├── goals.html          # Goal list, split into active and completed
 │   ├── goal.html           # Goal detail page with the goal's tasks
-│   └── goal_form.html      # Create/edit goal form
+│   ├── goal_form.html      # Create/edit goal form
+│   ├── events.html         # Event list, split into upcoming and past
+│   ├── event.html          # Event detail page
+│   ├── event_form.html     # Create/edit event form
+│   └── event_card.html     # Partial rendering a single event, used by the event list
 └── static/
     └── style.css           # The single dark, responsive stylesheet
 ```
@@ -129,9 +145,9 @@ routes pass to them.
 ## How It Works
 
 - **Flask handles the web application.** `app.py` defines the routes for the
-  dashboard, accounts, tasks and goals. Each route reads the request, validates
-  the submitted form fields, runs the required queries and either redirects or
-  renders a Jinja template.
+  dashboard, accounts, tasks, goals and events. Each route reads the request,
+  validates the submitted form fields, runs the required queries and either
+  redirects or renders a Jinja template.
 - **SQLite stores the data.** All state lives in a single SQLite file,
   `execute.db`. `database.py` opens a connection per request with a `sqlite3.Row`
   row factory so that columns can be read by name, and enables foreign key
@@ -140,25 +156,32 @@ routes pass to them.
 - **Authentication uses Flask sessions.** Logging in writes the user's id and
   username into the session; logging out clears it. The `SECRET_KEY` used to
   sign the session cookie is read from a local `.env` file through
-  python-dotenv. A `login_required` decorator protects the task and goal pages,
-  and the dashboard checks the session before rendering any user data.
+  python-dotenv. A `login_required` decorator protects the task, goal and event
+  pages, and the dashboard checks the session before rendering any user data.
 - **Passwords are stored as hashes.** Registration hashes the password with
   Werkzeug's `generate_password_hash` and stores only the hash. Login compares
   the submitted password against that hash with `check_password_hash`, so the
   original password is never stored or compared as text.
-- **Users own their goals and tasks.** The owner is taken from the session and
-  never from the submitted form. Queries that touch a single task or goal filter
-  on both the row id and the session user id, and they return a 404 if no such
-  row belongs to the current user. This keeps one account's data invisible and
-  immutable to another account.
+- **Users own their goals, tasks and events.** The owner is taken from the
+  session and never from the submitted form. Queries that touch a single task,
+  goal or event filter on both the row id and the session user id, and they
+  return a 404 if no such row belongs to the current user. This keeps one
+  account's data invisible and immutable to another account.
 - **Goals can contain multiple tasks.** `tasks.goal_id` references `goals.id`
   with `ON DELETE SET NULL`, so a goal groups any number of tasks, and deleting
   the goal leaves its tasks in place, unlinked rather than removed.
+- **Dates are stored in one format.** Every date and time entered through a form
+  is parsed with `datetime.fromisoformat` and stored as a zero-padded
+  `YYYY-MM-DD HH:MM:SS` string, so dates can be sorted and compared in SQL. An
+  event is treated as upcoming while its `starts_at` is greater than or equal to
+  the current time, which is produced by the same helper.
 - **The application uses direct SQLite queries rather than an ORM.** Statements
   are written by hand with `?` placeholders, which keeps the SQL visible and
   avoids an extra layer of abstraction at this size.
-- The database schema already defines `events` and `commitments` tables intended
-  for later milestones. No route or template uses them yet.
+- The event pages use the existing `events` table, which needed no change: it
+  already had the title, description, start, end, location and owner columns the
+  feature requires. The `commitments` table is still reserved for a later
+  milestone, and no route or template uses it yet.
 
 ## Running Locally
 
@@ -177,9 +200,8 @@ default local address.
 ## What's Next
 
 The following are planned for later milestones. None of them is implemented, and
-the events and commitments tables mentioned above are currently unused.
+the commitments table mentioned above is currently unused.
 
-- **Events** - scheduled items with a start time and place, alongside tasks.
 - **Commitments** - things owed to other people, tracked separately from
   personal tasks.
 - **A stronger execution-focused dashboard** - a summary of what needs attention
