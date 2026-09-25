@@ -283,6 +283,54 @@ def _format_interpretation_time(value):
         return value
 
 
+def _format_interpretation_date(value):
+    """Format a stored date-only timestamp without inventing a clock time."""
+    parsed = None
+    for pattern in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(value, pattern)
+            break
+        except (TypeError, ValueError):
+            continue
+    if parsed is None:
+        return value
+    return parsed.strftime("%A, %B %d").replace(" 0", " ")
+
+
+def _format_interpretation_when(interpretation):
+    """Render the confirmation's When line truthfully.
+
+    Exact timestamps keep the V1 wording. Vague periods such as "evening"
+    render as the parsed date followed by the period, never as a fabricated
+    exact time.
+    """
+    if not isinstance(interpretation, dict):
+        return "Not specified"
+
+    approximate = interpretation.get("approximate_time")
+    if not isinstance(approximate, str):
+        approximate = ""
+    approximate = approximate.strip().lower()
+    if approximate not in ("morning", "afternoon", "evening", "night"):
+        approximate = ""
+
+    if interpretation.get("type") == "event":
+        exact = interpretation.get("starts_at")
+        date_value = interpretation.get("date")
+    else:
+        exact = interpretation.get("due_at") or interpretation.get("deadline")
+        date_value = interpretation.get("date")
+
+    if exact:
+        return _format_interpretation_time(exact)
+    if date_value:
+        formatted = _format_interpretation_date(date_value)
+        if approximate:
+            return f"{formatted} — {approximate}"
+        return formatted
+    return "Not specified"
+
+
 def _quick_add_text(value, limit=1000):
     """Return safely bounded display text from a signed-session preview."""
     if not isinstance(value, str):
@@ -314,14 +362,28 @@ def _validated_quick_add_preview(interpretation):
         "task": ("due_at",), "event": ("ends_at",),
         "commitment": ("deadline",), "goal": ("deadline",),
     }
+    date_only_fallback_fields = {"due_at", "deadline"}
     for field in optional_fields[item_type]:
-        timestamp, valid = parse_datetime(interpretation.get(field))
+        field_value = interpretation.get(field)
+        # Vague periods are stored as a parsed date with no exact clock time.
+        # For nullable due/deadline columns, persist that date at midnight at
+        # this validation boundary; the preview above remains date-plus-period.
+        if (field in date_only_fallback_fields
+                and (field_value is None or str(field_value).strip() == "")):
+            field_value = interpretation.get("date")
+        timestamp, valid = parse_datetime(field_value)
         if not valid:
             errors.append(f"The interpreted {field.replace('_', ' ')} is invalid.")
         values[field] = timestamp
 
     if item_type == "event":
-        starts_at, valid = parse_datetime(interpretation.get("starts_at"))
+        starts_value = interpretation.get("starts_at")
+        if starts_value is None or str(starts_value).strip() == "":
+            # events.starts_at is NOT NULL in the existing schema, so a
+            # date-only/vague event is stored at midnight here without changing
+            # the schema or presenting that midnight as an exact event time.
+            starts_value = interpretation.get("date")
+        starts_at, valid = parse_datetime(starts_value)
         if not valid or starts_at is None:
             errors.append("The interpreted event start date and time is required.")
         values["starts_at"] = starts_at
@@ -360,10 +422,7 @@ def quick_add():
             error=interpretation.get("error"),
         )
 
-    interpretation["display_when"] = _format_interpretation_time(
-        interpretation.get("starts_at") or interpretation.get("due_at")
-        or interpretation.get("deadline")
-    )
+    interpretation["display_when"] = _format_interpretation_when(interpretation)
     session["quick_add_interpretation"] = interpretation
     session["quick_add_original_text"] = text
     return render_template(
